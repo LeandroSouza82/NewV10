@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import '../core/app_colors.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/info_card.dart';
 import '../widgets/success_status.dart';
 import '../widgets/draggable_route_list.dart';
 import '../services/supabase_service.dart';
+import '../services/sync_service.dart';
 import '../services/location_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
@@ -27,6 +29,7 @@ class _HomeViewState extends State<HomeView> {
   bool _isOnline = false;
   bool _isUpdatingStatus = false;
   String navegadorSelecionado = 'maps';
+  List<Map<String, dynamic>> _entregasCacheadas = [];
 
   String get _saudacao {
     final hora = DateTime.now().hour;
@@ -42,8 +45,25 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
+    _carregarCacheEntregas();
     _carregarMotorista();
     _carregarNavegador();
+  }
+
+  Future<void> _carregarCacheEntregas() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cacheString = prefs.getString('cache_entregas_motorista');
+    if (cacheString != null && mounted) {
+      setState(() {
+        final List<dynamic> decoded = jsonDecode(cacheString);
+        _entregasCacheadas = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      });
+    }
+  }
+
+  Future<void> _salvarCacheEntregas(List<Map<String, dynamic>> entregas) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cache_entregas_motorista', jsonEncode(entregas));
   }
 
   Future<void> _carregarNavegador() async {
@@ -68,34 +88,29 @@ class _HomeViewState extends State<HomeView> {
         return AlertDialog(
           backgroundColor: AppColors.cardBackground,
           title: const Text('Navegador Padrão', style: TextStyle(color: AppColors.textWhite)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              RadioListTile<String>(
-                title: const Text('Google Maps', style: TextStyle(color: AppColors.textWhite)),
-                value: 'maps',
-                groupValue: navegadorSelecionado,
-                activeColor: AppColors.successGreen,
-                onChanged: (String? value) {
-                  if (value != null) {
-                    _salvarNavegador(value);
-                    Navigator.pop(context);
-                  }
-                },
-              ),
-              RadioListTile<String>(
-                title: const Text('Waze', style: TextStyle(color: AppColors.textWhite)),
-                value: 'waze',
-                groupValue: navegadorSelecionado,
-                activeColor: AppColors.successGreen,
-                onChanged: (String? value) {
-                  if (value != null) {
-                    _salvarNavegador(value);
-                    Navigator.pop(context);
-                  }
-                },
-              ),
-            ],
+          content: RadioGroup<String>(
+            groupValue: navegadorSelecionado,
+            onChanged: (String? value) {
+              if (value != null) {
+                _salvarNavegador(value);
+                Navigator.pop(context);
+              }
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RadioListTile<String>(
+                  title: const Text('Google Maps', style: TextStyle(color: AppColors.textWhite)),
+                  value: 'maps',
+                  activeColor: AppColors.successGreen,
+                ),
+                RadioListTile<String>(
+                  title: const Text('Waze', style: TextStyle(color: AppColors.textWhite)),
+                  value: 'waze',
+                  activeColor: AppColors.successGreen,
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -411,27 +426,29 @@ class _HomeViewState extends State<HomeView> {
           StreamBuilder<List<Map<String, dynamic>>>(
             stream: _rotasStream,
             builder: (context, snapshot) {
-              // Tela de Carregamento Inicial
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              // Tela de Carregamento Inicial (apenas se não houver cache)
+              if (snapshot.connectionState == ConnectionState.waiting && _entregasCacheadas.isEmpty) {
                 return const Center(
                   child: CircularProgressIndicator(color: AppColors.successGreen),
                 );
               }
-              
-              // Em caso de erro na conexão
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text(
-                    'Erro ao conectar: ${snapshot.error}', 
-                    style: const TextStyle(color: Colors.redAccent),
-                  ),
-                );
+
+              // Atualiza o cache silenciosamente se houver dados novos
+              if (snapshot.hasData && !snapshot.hasError) {
+                // Compara para evitar regravações inúteis
+                if (jsonEncode(_entregasCacheadas) != jsonEncode(snapshot.data)) {
+                  _entregasCacheadas = snapshot.data!;
+                  Future.microtask(() => _salvarCacheEntregas(_entregasCacheadas));
+                }
               }
 
-              // Dados Reais do Banco
-              final rotasAtivas = snapshot.data ?? [];
+              final bool isOfflineErro = snapshot.hasError;
+              // Filtra entregas já finalizadas localmente para evitar efeito ioiô
+              final rotasAtivas = _entregasCacheadas
+                  .where((r) => !SyncService.idsFinalizadosLocalmente.contains(r['id'].toString()))
+                  .toList();
               bool isFinalizado = rotasAtivas.isEmpty;
-
+              
               // Contagem Dinâmica
               int qtdEntregas = rotasAtivas.where((r) => r['tipo'].toString().toLowerCase() == 'entrega').length;
               int qtdColetas = rotasAtivas.where((r) => r['tipo'].toString().toLowerCase() == 'coleta' || r['tipo'].toString().toLowerCase() == 'recolha').length;
@@ -447,6 +464,25 @@ class _HomeViewState extends State<HomeView> {
                     onToggleStatus: _mudarStatus,
                   ),
                   
+                  // Banner de Aviso Discreto de Offline (Cache Mode)
+                  if (isOfflineErro && _entregasCacheadas.isNotEmpty)
+                    Container(
+                      width: double.infinity,
+                      color: Colors.orange.withValues(alpha: 0.2),
+                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.cloud_off_rounded, color: Colors.orange, size: 16),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Modo Offline. Exibindo dados salvos.',
+                            style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   // Cards com os números REAIS do banco
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -476,30 +512,66 @@ class _HomeViewState extends State<HomeView> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Lógica da Lista vs Sucesso
+                  // Lógica da Lista vs Sucesso vs Offline
                   Expanded(
-                    child: isFinalizado 
-                        ? const SuccessStatus() 
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.route_rounded, color: AppColors.textGrey, size: 20),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'FILA DE ROTEIRIZAÇÃO',
-                                      style: TextStyle(
-                                        color: AppColors.textGrey.withValues(alpha: 0.9),
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.5,
-                                      ),
-                                    ),
-                                  ],
+                    child: (isOfflineErro && rotasAtivas.isEmpty)
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.wifi_off, color: Colors.grey, size: 60),
+                                const SizedBox(height: 24),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 32.0),
+                                  child: Text(
+                                    'Você está offline. O aplicativo sincronizará os dados automaticamente assim que a conexão for restabelecida.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: AppColors.textWhite, fontSize: 16, height: 1.5),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 32),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    setState(() {
+                                      // Dispara rebuild para o Stream Builder tentar nova conexão
+                                    });
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.successGreen,
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  icon: const Icon(Icons.refresh_rounded, color: Colors.black),
+                                  label: const Text(
+                                    'Tentar novamente',
+                                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : isFinalizado 
+                            ? const SuccessStatus() 
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.route_rounded, color: AppColors.textGrey, size: 20),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'FILA DE ROTEIRIZAÇÃO',
+                                          style: TextStyle(
+                                            color: AppColors.textGrey.withValues(alpha: 0.9),
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                               Expanded(
                                 child: DraggableRouteList(
                                   key: ValueKey(rotasAtivas.length),

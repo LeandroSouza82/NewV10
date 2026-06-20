@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_colors.dart';
+import '../views/components/modal_baixa_entrega.dart';
+import '../views/components/modal_falha_entrega.dart';
 
 class DraggableRouteList extends StatefulWidget {
   final List<Map<String, dynamic>> rotasIniciais;
@@ -66,6 +68,46 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _abrirModalBaixa(BuildContext context, Map<String, dynamic> rota) async {
+    final bool? sucesso = await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ModalBaixaEntrega(
+        rota: rota,
+        tipo: rota['tipo'] ?? 'Entrega',
+        clienteNome: rota['cliente']?.toString() ?? 'Não informado',
+        endereco: rota['endereco'] ?? 'Não informado',
+      ),
+    );
+
+    if (sucesso == true) {
+      setState(() {
+        rotas.removeWhere((item) => item['id'] == rota['id']);
+      });
+    }
+  }
+
+  Future<void> _abrirModalFalha(BuildContext context, Map<String, dynamic> rota) async {
+    final bool? sucesso = await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ModalFalhaEntrega(
+        rota: rota,
+        tipo: rota['tipo'] ?? 'Entrega',
+        clienteNome: rota['cliente']?.toString() ?? 'Não informado',
+        endereco: rota['endereco'] ?? 'Não informado',
+      ),
+    );
+
+    if (sucesso == true) {
+      setState(() {
+        rotas.removeWhere((item) => item['id'] == rota['id']);
+      });
     }
   }
 
@@ -228,7 +270,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                     Expanded(
                       flex: 4,
                       child: ElevatedButton.icon(
-                        onPressed: () {},
+                        onPressed: () => _abrirModalFalha(context, rota),
                         icon: const Icon(Icons.error_outline_rounded, size: 18, color: Colors.white),
                         label: const Text('FALHA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
@@ -243,7 +285,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                     Expanded(
                       flex: 3,
                       child: ElevatedButton.icon(
-                        onPressed: () {},
+                        onPressed: () => _abrirModalBaixa(context, rota),
                         icon: const Icon(Icons.check_rounded, size: 18, color: Colors.white),
                         label: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(

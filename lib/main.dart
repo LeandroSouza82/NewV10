@@ -6,6 +6,7 @@ import 'services/permission_service.dart';
 import 'services/supabase_service.dart';
 import 'views/splash_view.dart';
 import 'views/overlay_view.dart';
+import 'services/sync_service.dart';
 
 @pragma('vm:entry-point')
 void overlayMain() {
@@ -39,6 +40,9 @@ void main() async {
   
   // Inicializa o monitoramento do Socket Realtime para diagnóstico
   SupabaseService.initializeMonitoring();
+  
+  // Inicializa o serviço de sincronização offline
+  SyncService.initialize();
   
   runApp(const AppDoMotorista());
 }
