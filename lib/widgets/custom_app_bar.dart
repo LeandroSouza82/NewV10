@@ -81,7 +81,7 @@ class CustomAppBar extends StatelessWidget {
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textWhite),
                           ),
                         )
-                      else if (isOnline)
+                      else
                         TweenAnimationBuilder<double>(
                           tween: Tween(begin: 0.5, end: 1.0),
                           duration: const Duration(seconds: 1),
@@ -93,28 +93,19 @@ class CustomAppBar extends StatelessWidget {
                               height: 12,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: AppColors.successGreen,
+                                color: isOnline ? Colors.green : Colors.red,
                                 boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.successGreen.withValues(alpha: value * 0.6),
-                                    blurRadius: value * 8,
-                                    spreadRadius: value * 2,
-                                  ),
+                                  if (isOnline)
+                                    BoxShadow(
+                                      color: Colors.green.withValues(alpha: value * 0.6),
+                                      blurRadius: value * 8,
+                                      spreadRadius: value * 2,
+                                    ),
                                 ],
                               ),
                             );
                           },
                           onEnd: () {},
-                        )
-                      else
-                        Container(
-                          margin: const EdgeInsets.only(right: 12),
-                          width: 12,
-                          height: 12,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.redAccent,
-                          ),
                         ),
                       
                       // Avatar do Motorista

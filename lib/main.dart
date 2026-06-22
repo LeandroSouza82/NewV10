@@ -5,16 +5,21 @@ import 'core/app_colors.dart';
 import 'services/permission_service.dart';
 import 'services/supabase_service.dart';
 import 'views/splash_view.dart';
-import 'views/overlay_view.dart';
+import 'views/components/card_alerta_overlay.dart';
 import 'services/sync_service.dart';
+import 'services/notification_service.dart';
 
-@pragma('vm:entry-point')
-void overlayMain() {
+@pragma("vm:entry-point")
+void overlayMain() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.initialize();
   runApp(
     const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: OverlayView(),
+      home: Material(
+        color: Colors.transparent,
+        child: CardAlertaOverlay(),
+      ),
     ),
   );
 }
@@ -41,6 +46,9 @@ void main() async {
   // Inicializa o monitoramento do Socket Realtime para diagnóstico
   SupabaseService.initializeMonitoring();
   
+  // Inicializa o serviço de notificações locais
+  await NotificationService.initialize();
+
   // Inicializa o serviço de sincronização offline
   SyncService.initialize();
   

@@ -4,8 +4,11 @@ import 'dart:async';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'audio_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:app_do_motorista/services/notification_service.dart';
 
 class SupabaseService {
   static final SupabaseClient client = Supabase.instance.client;
@@ -14,6 +17,8 @@ class SupabaseService {
   static String? currentMotoristaId;
 
   static RealtimeChannel? _entregasChannel;
+  static Set<String> _idsRotasConhecidas = {};
+  static bool _isPrimeiraBusca = true;
 
   // Autenticação Customizada
   static Future<void> login(String email, String password) async {
@@ -123,18 +128,29 @@ class SupabaseService {
 
         if (motoristaIdRecebido == motoristaId && statusNovo == 'em_rota') {
           if (statusAntigo != 'em_rota') {
-            final isActive = await FlutterOverlayWindow.isActive();
-            if (!isActive) {
-              await FlutterOverlayWindow.showOverlay(
-                enableDrag: true,
-                overlayTitle: "Nova Entrega",
-                overlayContent: "Você tem uma nova atribuição",
-                flag: OverlayFlag.defaultFlag,
-                visibility: NotificationVisibility.visibilityPublic,
-                positionGravity: PositionGravity.auto,
-                height: 300,
-                width: WindowSize.matchParent,
-              );
+            await AudioService.playChama(); // Toca incondicionalmente
+            final lifecycleState = WidgetsBinding.instance.lifecycleState;
+            final isBackground = lifecycleState == AppLifecycleState.paused || 
+                                 lifecycleState == AppLifecycleState.inactive || 
+                                 lifecycleState == AppLifecycleState.hidden;
+            
+            if (isBackground) {
+              final isGranted = await FlutterOverlayWindow.isPermissionGranted();
+              if (isGranted) {
+                final isActive = await FlutterOverlayWindow.isActive();
+                if (!isActive) {
+                  await FlutterOverlayWindow.showOverlay(
+                    enableDrag: true,
+                    overlayTitle: "Nova Entrega",
+                    overlayContent: "Você tem uma nova atribuição",
+                    flag: OverlayFlag.defaultFlag,
+                    visibility: NotificationVisibility.visibilityPublic,
+                    positionGravity: PositionGravity.auto,
+                    height: 300,
+                    width: WindowSize.matchParent,
+                  );
+                }
+              }
             }
           }
         }
@@ -189,6 +205,53 @@ class SupabaseService {
         
         if (!controller.isClosed) {
           print('⚡ FALLBACK: Dados REST recebidos com sucesso. Qtd: ${list.length}');
+          
+          if (list.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
+            await AudioService.playFinal();
+          }
+
+          Set<String> idsAtuais = list.map((rota) => rota['id'].toString()).toSet();
+
+          if (_isPrimeiraBusca) {
+            _idsRotasConhecidas = idsAtuais;
+            _isPrimeiraBusca = false;
+          } else {
+            bool temRotaNova = idsAtuais.any((id) => !_idsRotasConhecidas.contains(id));
+
+            if (temRotaNova) {
+              await NotificationService.showRotaRecebida(); // Dispara notificação com som 'chama'
+              final isForeground = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+
+              if (!isForeground) {
+                print('✅ Rota REALMENTE nova detectada via REST e app em background! Disparando overlay...');
+                try {
+                  final bool isGranted = await FlutterOverlayWindow.isPermissionGranted();
+                  if (isGranted) {
+                    await FlutterOverlayWindow.showOverlay(
+                      enableDrag: true,
+                      overlayTitle: "V10 Delivery",
+                      overlayContent: "Nova rota disponível",
+                      flag: OverlayFlag.defaultFlag,
+                      visibility: NotificationVisibility.visibilityPublic,
+                      positionGravity: PositionGravity.auto,
+                      height: WindowSize.matchParent,
+                      width: WindowSize.matchParent,
+                    );
+                    print('✅ Overlay disparado com sucesso pelo plugin!');
+                  } else {
+                    print('❌ FALHA: Permissão de sobreposição negada no Android.');
+                  }
+                } catch (e, stacktrace) {
+                  print('🚨 ERRO FATAL AO DESENHAR OVERLAY: $e');
+                  print(stacktrace);
+                }
+              } else {
+                print('✅ Rota nova detectada via REST, mas app está aberto. Não disparando overlay.');
+              }
+            }
+            _idsRotasConhecidas = idsAtuais;
+          }
+
           controller.add(list);
           hasReceivedData = true;
         }
@@ -222,10 +285,57 @@ class SupabaseService {
             }).toList();
           })
           .listen(
-            (dados) {
+            (dados) async {
               // Convertendo de List<Map<dynamic, dynamic>> para List<Map<String, dynamic>>
               final mapped = dados.map((linha) => Map<String, dynamic>.from(linha)).toList();
               print('⚡ REALTIME: Dados recebidos via WebSocket. Qtd: ${mapped.length}');
+              
+              if (mapped.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
+                await AudioService.playFinal();
+              }
+
+              Set<String> idsAtuais = mapped.map((rota) => rota['id'].toString()).toSet();
+
+              if (_isPrimeiraBusca) {
+                _idsRotasConhecidas = idsAtuais;
+                _isPrimeiraBusca = false;
+              } else {
+                bool temRotaNova = idsAtuais.any((id) => !_idsRotasConhecidas.contains(id));
+
+                if (temRotaNova) {
+                  await NotificationService.showRotaRecebida(); // Dispara notificação com som 'chama'
+                  final isForeground = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+
+                  if (!isForeground) {
+                    print('✅ Rota REALMENTE nova detectada via REALTIME e app em background! Disparando overlay...');
+                    try {
+                      final bool isGranted = await FlutterOverlayWindow.isPermissionGranted();
+                      if (isGranted) {
+                        await FlutterOverlayWindow.showOverlay(
+                          enableDrag: true,
+                          overlayTitle: "V10 Delivery",
+                          overlayContent: "Nova rota disponível",
+                          flag: OverlayFlag.defaultFlag,
+                          visibility: NotificationVisibility.visibilityPublic,
+                          positionGravity: PositionGravity.auto, 
+                          height: WindowSize.matchParent,
+                          width: WindowSize.matchParent,
+                        );
+                        print('✅ Overlay disparado com sucesso pelo plugin!');
+                      } else {
+                        print('❌ FALHA: Permissão de sobreposição negada no Android.');
+                      }
+                    } catch (e, stacktrace) {
+                      print('🚨 ERRO FATAL AO DESENHAR OVERLAY: $e');
+                      print(stacktrace);
+                    }
+                  } else {
+                    print('✅ Rota nova detectada via REALTIME, mas app está aberto. Não disparando overlay.');
+                  }
+                }
+                _idsRotasConhecidas = idsAtuais;
+              }
+              
               hasReceivedData = true;
               if (fallbackTimer != null) {
                 fallbackTimer!.cancel();

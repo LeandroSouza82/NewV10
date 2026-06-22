@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+
 import 'dart:convert';
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../core/app_colors.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/info_card.dart';
@@ -22,11 +25,13 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   // Stream instanciado UMA vez — não recria conexão a cada build
-  final Stream<List<Map<String, dynamic>>> _rotasStream = SupabaseService.getRotasAtivas();
+  Stream<List<Map<String, dynamic>>> _rotasStream = SupabaseService.getRotasAtivas();
+  StreamSubscription? _connectivitySubscription;
 
   Map<String, dynamic>? _motorista;
   bool _isLoadingPhoto = false;
   bool _isOnline = false;
+  bool hasInternet = true;
   bool _isUpdatingStatus = false;
   String navegadorSelecionado = 'maps';
   List<Map<String, dynamic>> _entregasCacheadas = [];
@@ -48,6 +53,28 @@ class _HomeViewState extends State<HomeView> {
     _carregarCacheEntregas();
     _carregarMotorista();
     _carregarNavegador();
+    
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      if (mounted) {
+        setState(() {
+          hasInternet = results.any((r) => r != ConnectivityResult.none);
+        });
+
+        if (hasInternet) {
+          _recarregarDadosAoVoltarOnline();
+        }
+      }
+    });
+  }
+
+  Future<void> _recarregarDadosAoVoltarOnline() async {
+    await _carregarMotorista();
+    
+    if (mounted) {
+      setState(() {
+        _rotasStream = SupabaseService.getRotasAtivas();
+      });
+    }
   }
 
   Future<void> _carregarCacheEntregas() async {
@@ -278,15 +305,27 @@ class _HomeViewState extends State<HomeView> {
   Future<void> _fazerLogout() async {
     LocationService.pararRastreamento();
     SupabaseService.pararEscutaNovasEntregas();
-    await SupabaseService.logout();
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const SplashView()),
-    );
+    
+    try {
+      await SupabaseService.logout().timeout(const Duration(seconds: 2));
+    } catch (e) {
+      debugPrint('Logout offline: limpando dados locais.');
+    } finally {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const SplashView()),
+          (route) => false,
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     LocationService.pararRastreamento();
     SupabaseService.pararEscutaNovasEntregas();
     super.dispose();
@@ -312,7 +351,8 @@ class _HomeViewState extends State<HomeView> {
                   ),
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     GestureDetector(
                       onTap: _isLoadingPhoto ? null : () => _mostrarOpcoesDeFoto(context),
@@ -360,6 +400,7 @@ class _HomeViewState extends State<HomeView> {
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.0,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -368,6 +409,7 @@ class _HomeViewState extends State<HomeView> {
                         color: AppColors.textGrey.withValues(alpha: 0.8),
                         fontSize: 14,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
@@ -459,7 +501,7 @@ class _HomeViewState extends State<HomeView> {
                   CustomAppBar(
                     driverName: _motorista != null ? (_motorista!['nome'] ?? 'Motorista') : 'Carregando...',
                     avatarUrl: _motorista != null ? _motorista!['avatar_path'] : null,
-                    isOnline: _isOnline,
+                    isOnline: hasInternet,
                     isUpdatingStatus: _isUpdatingStatus,
                     onToggleStatus: _mudarStatus,
                   ),

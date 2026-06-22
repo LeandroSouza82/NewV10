@@ -7,12 +7,13 @@ class OverlayView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
-        padding: const EdgeInsets.all(20.0),
-        decoration: BoxDecoration(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
+          padding: const EdgeInsets.all(20.0),
+          decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
@@ -88,6 +89,7 @@ class OverlayView extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

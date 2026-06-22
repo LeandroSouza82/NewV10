@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,6 +8,8 @@ import '../core/app_colors.dart';
 import '../services/supabase_service.dart';
 import 'home_view.dart';
 import 'register_view.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'permission_onboarding_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -22,12 +25,24 @@ class _LoginViewState extends State<LoginView> {
   bool _obscureText = true;
   bool _manterLogado = false;
   String? _errorMessage;
+  StreamSubscription? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
     _passwordController.clear();
     _carregarEmailSalvo();
+    
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      final isOnline = results.any((r) => r != ConnectivityResult.none);
+      if (isOnline) {
+        if (_errorMessage != null && _errorMessage!.toLowerCase().contains('conexão')) {
+          setState(() {
+            _errorMessage = null;
+          });
+        }
+      }
+    });
   }
 
   Future<void> _carregarEmailSalvo() async {
@@ -87,11 +102,14 @@ class _LoginViewState extends State<LoginView> {
         await prefs.remove('manter_logado');
       }
       
+      // Navega para a Home ou para a tela de Permissões
+      bool hasOverlayPerm = await FlutterOverlayWindow.isPermissionGranted();
       if (!mounted) return;
       
-      // Navega para a Home e remove a tela de Login da pilha
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeView()),
+        MaterialPageRoute(
+          builder: (context) => hasOverlayPerm ? const HomeView() : const PermissionOnboardingView(),
+        ),
       );
     } catch (e) {
       String mensagemAmigavel;
@@ -127,6 +145,7 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();

@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
+import '../../services/audio_service.dart';
 
 class ModalFalhaEntrega extends StatefulWidget {
   final Map<String, dynamic> rota;
@@ -89,6 +90,8 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
         _erroValidacao = null;
       });
     }
+
+    await AudioService.playFalha();
 
     setState(() {
       _isLoading = true;
