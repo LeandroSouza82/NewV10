@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_colors.dart';
 import '../views/components/modal_baixa_entrega.dart';
 import '../views/components/modal_falha_entrega.dart';
+import 'package:geolocator/geolocator.dart';
+import '../core/utils/location_utils.dart';
 
 class DraggableRouteList extends StatefulWidget {
   final List<Map<String, dynamic>> rotasIniciais;
@@ -16,11 +18,34 @@ class DraggableRouteList extends StatefulWidget {
 
 class _DraggableRouteListState extends State<DraggableRouteList> {
   late List<Map<String, dynamic>> rotas;
+  Position? _posAtual;
 
   @override
   void initState() {
     super.initState();
     rotas = List.from(widget.rotasIniciais);
+    _obterPosicaoAtual();
+  }
+
+  Future<void> _obterPosicaoAtual() async {
+    try {
+      final pos = await Geolocator.getLastKnownPosition();
+      if (pos != null && mounted) {
+        setState(() {
+          _posAtual = pos;
+        });
+      }
+      final currentPos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      if (mounted) {
+        setState(() {
+          _posAtual = currentPos;
+        });
+      }
+    } catch (e) {
+      // Ignora erro
+    }
   }
 
   @override
@@ -172,7 +197,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          tipo.toUpperCase(),
+                          (tipo.toLowerCase() == 'recolha' || tipo.toLowerCase() == 'coleta') ? 'COLETA' : tipo.toUpperCase(),
                           style: TextStyle(color: accentColor, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.0),
                         ),
                       ],
@@ -183,12 +208,40 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                         color: AppColors.borderRecolha.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.location_off_rounded, color: AppColors.borderRecolha, size: 14),
-                          SizedBox(width: 4),
-                          Text('Sem GPS', style: TextStyle(color: AppColors.borderRecolha, fontSize: 12, fontWeight: FontWeight.bold)),
-                        ],
+                      child: Builder(
+                        builder: (context) {
+                          double? latDestino = double.tryParse(rota['lat']?.toString() ?? '');
+                          double? lngDestino = double.tryParse(rota['lng']?.toString() ?? '');
+
+                          if (latDestino == null || lngDestino == null) {
+                            return const Row(
+                              children: [
+                                Icon(Icons.location_off_rounded, color: AppColors.borderRecolha, size: 14),
+                                SizedBox(width: 4),
+                                Text('Sem GPS', style: TextStyle(color: AppColors.borderRecolha, fontSize: 12, fontWeight: FontWeight.bold)),
+                              ],
+                            );
+                          }
+
+                          // Se a localização do celular falhar, usa o centro de Palhoça como base para não quebrar a UI
+                          final double motoristaLat = _posAtual?.latitude ?? -27.6450;
+                          final double motoristaLng = _posAtual?.longitude ?? -48.6730;
+
+                          final dist = LocationUtils.obterDistanciaLogistica(
+                            latAtual: motoristaLat,
+                            lngAtual: motoristaLng,
+                            latDestino: latDestino,
+                            lngDestino: lngDestino,
+                          );
+
+                          return Row(
+                            children: [
+                              const Icon(Icons.location_on_rounded, color: AppColors.borderRecolha, size: 14),
+                              const SizedBox(width: 4),
+                              Text('${dist.toStringAsFixed(1)} km', style: const TextStyle(color: AppColors.borderRecolha, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ],
+                          );
+                        }
                       ),
                     ),
                   ],

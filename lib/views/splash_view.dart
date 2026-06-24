@@ -103,72 +103,92 @@ class _SplashViewState extends State<SplashView>
             colors: [AppColors.backgroundBody, Colors.black],
           ),
         ),
-        child: Center(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: ScaleTransition(
-              scale: _scaleAnimation,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Logo V10
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.successGreen.withValues(alpha: 0.6),
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.successGreen.withValues(alpha: 0.15),
-                          blurRadius: 40,
-                          spreadRadius: 10,
+        child: Stack(
+          children: [
+            Center(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Logo V10
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.successGreen.withValues(alpha: 0.6),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.successGreen.withValues(alpha: 0.15),
+                              blurRadius: 40,
+                              spreadRadius: 10,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.delivery_dining_rounded,
-                      color: AppColors.successGreen,
-                      size: 72,
-                    ),
+                        child: const Icon(
+                          Icons.delivery_dining_rounded,
+                          color: AppColors.successGreen,
+                          size: 72,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      // Nome V10
+                      const Text(
+                        'V10',
+                        style: TextStyle(
+                          color: AppColors.textWhite,
+                          fontSize: 48,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 6,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'DELIVERY',
+                        style: TextStyle(
+                          color: AppColors.textGrey.withValues(alpha: 0.8),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 8,
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      // Indicador de carregamento sutil
+                      SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.successGreen.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 32),
-                  // Nome V10
-                  const Text(
-                    'V10',
-                    style: TextStyle(
-                      color: AppColors.textWhite,
-                      fontSize: 48,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 6,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'DELIVERY',
-                    style: TextStyle(
-                      color: AppColors.textGrey.withValues(alpha: 0.8),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 8,
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  // Indicador de carregamento sutil
-                  SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.successGreen.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 24.0),
+                  child: Text(
+                    'Versão 1.1.0 - Beta',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

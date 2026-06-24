@@ -468,13 +468,6 @@ class _HomeViewState extends State<HomeView> {
           StreamBuilder<List<Map<String, dynamic>>>(
             stream: _rotasStream,
             builder: (context, snapshot) {
-              // Tela de Carregamento Inicial (apenas se não houver cache)
-              if (snapshot.connectionState == ConnectionState.waiting && _entregasCacheadas.isEmpty) {
-                return const Center(
-                  child: CircularProgressIndicator(color: AppColors.successGreen),
-                );
-              }
-
               // Atualiza o cache silenciosamente se houver dados novos
               if (snapshot.hasData && !snapshot.hasError) {
                 // Compara para evitar regravações inúteis
@@ -501,7 +494,7 @@ class _HomeViewState extends State<HomeView> {
                   CustomAppBar(
                     driverName: _motorista != null ? (_motorista!['nome'] ?? 'Motorista') : 'Carregando...',
                     avatarUrl: _motorista != null ? _motorista!['avatar_path'] : null,
-                    isOnline: hasInternet,
+                    isOnline: hasInternet && _isOnline,
                     isUpdatingStatus: _isUpdatingStatus,
                     onToggleStatus: _mudarStatus,
                   ),
@@ -556,7 +549,9 @@ class _HomeViewState extends State<HomeView> {
 
                   // Lógica da Lista vs Sucesso vs Offline
                   Expanded(
-                    child: (isOfflineErro && rotasAtivas.isEmpty)
+                    child: (snapshot.connectionState == ConnectionState.waiting && _entregasCacheadas.isEmpty)
+                        ? const Center(child: CircularProgressIndicator(color: AppColors.successGreen))
+                        : (isOfflineErro && rotasAtivas.isEmpty)
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,

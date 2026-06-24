@@ -57,13 +57,13 @@ class SupabaseService {
     
     if (currentMotoristaId != null) {
       try {
-        // Mágica: Atualiza o status para online no auto-login
-        await client.from('motoristas').update({
+        // Mágica: Atualiza o status para online no auto-login (Fire and Forget)
+        client.from('motoristas').update({
           'esta_online': true,
           'status': 'disponivel',
           'aprovado': true, // Garantindo que o Dashboard veja como aprovado
           'ultima_atualizacao': DateTime.now().toUtc().toIso8601String(),
-        }).eq('id', currentMotoristaId!);
+        }).eq('id', currentMotoristaId!).then((_) {}).catchError((_) {});
       } catch (e) {
         // Ignora o erro silenciosamente caso a internet oscile na abertura
       }
@@ -139,6 +139,7 @@ class SupabaseService {
               if (isGranted) {
                 final isActive = await FlutterOverlayWindow.isActive();
                 if (!isActive) {
+                  await AudioService.playChamaNoOverlay();
                   await FlutterOverlayWindow.showOverlay(
                     enableDrag: true,
                     overlayTitle: "Nova Entrega",
@@ -149,13 +150,28 @@ class SupabaseService {
                     height: 300,
                     width: WindowSize.matchParent,
                   );
+                  _agendarFechamentoOverlay();
                 }
               }
             }
           }
         }
       },
-    ).subscribe();
+    );
+    
+    Future.microtask(() {
+      _entregasChannel!.subscribe();
+    });
+  }
+
+  static void _agendarFechamentoOverlay() {
+    Future.delayed(const Duration(seconds: 30), () async {
+      bool isActive = await FlutterOverlayWindow.isActive();
+      if (isActive) {
+        debugPrint('Fechando overlay externamente por timeout...');
+        await FlutterOverlayWindow.closeOverlay();
+      }
+    });
   }
 
   static void pararEscutaNovasEntregas() {
@@ -200,6 +216,8 @@ class SupabaseService {
             'cliente': linha['cliente'] ?? 'Sem Cliente',
             'endereco': linha['endereco'] ?? 'Sem Endereço',
             'aviso': linha['observacoes'] ?? linha['obs'] ?? '',
+            'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
+            'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
           };
         }).toList();
         
@@ -227,6 +245,7 @@ class SupabaseService {
                 try {
                   final bool isGranted = await FlutterOverlayWindow.isPermissionGranted();
                   if (isGranted) {
+                    await AudioService.playChamaNoOverlay();
                     await FlutterOverlayWindow.showOverlay(
                       enableDrag: true,
                       overlayTitle: "V10 Delivery",
@@ -237,6 +256,7 @@ class SupabaseService {
                       height: WindowSize.matchParent,
                       width: WindowSize.matchParent,
                     );
+                    _agendarFechamentoOverlay();
                     print('✅ Overlay disparado com sucesso pelo plugin!');
                   } else {
                     print('❌ FALHA: Permissão de sobreposição negada no Android.');
@@ -281,6 +301,8 @@ class SupabaseService {
                 'cliente': linha['cliente'] ?? 'Sem Cliente',
                 'endereco': linha['endereco'] ?? 'Sem Endereço',
                 'aviso': linha['observacoes'] ?? linha['obs'] ?? '',
+                'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
+                'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
               };
             }).toList();
           })
@@ -311,6 +333,7 @@ class SupabaseService {
                     try {
                       final bool isGranted = await FlutterOverlayWindow.isPermissionGranted();
                       if (isGranted) {
+                        await AudioService.playChamaNoOverlay();
                         await FlutterOverlayWindow.showOverlay(
                           enableDrag: true,
                           overlayTitle: "V10 Delivery",
@@ -321,6 +344,7 @@ class SupabaseService {
                           height: WindowSize.matchParent,
                           width: WindowSize.matchParent,
                         );
+                        _agendarFechamentoOverlay();
                         print('✅ Overlay disparado com sucesso pelo plugin!');
                       } else {
                         print('❌ FALHA: Permissão de sobreposição negada no Android.');
@@ -442,5 +466,28 @@ class SupabaseService {
       'esta_online': novoStatus,
       'status': novoStatus ? 'disponivel' : 'indisponivel'
     }).eq('id', motoristaId);
+  }
+
+  // Verifica saúde da conexão e tenta reconectar silenciosamente
+  static void checkAndReconnect() {
+    print('⚡ SYSTEM: Verificando saúde do Supabase Realtime (Lifecycle Resumed)...');
+    try {
+      final isConnected = client.realtime.isConnected;
+      if (!isConnected) {
+        print('⚡ SYSTEM: Supabase Realtime desconectado. Forçando reconexão...');
+        // O Supabase tenta reconectar automaticamente
+        // Não é necessário chamar connect manualmente (membro interno).
+        
+        // Se já tem motorista logado e online, garantimos que a escuta de entregas está ativa
+        if (currentMotoristaId != null) {
+          // Re-inscreve para garantir que o canal "public:entregas" está ouvindo
+          iniciarEscutaNovasEntregas(currentMotoristaId!);
+        }
+      } else {
+        print('⚡ SYSTEM: Supabase Realtime já está conectado.');
+      }
+    } catch (e) {
+      print('⚡ SYSTEM: Erro ao verificar conexão: $e');
+    }
   }
 }

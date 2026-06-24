@@ -39,6 +39,7 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
     'Local Fechado',
     'Falta de documentos',
     'Ata não registrada',
+    'Não Registrada',
     'Outros',
   ];
   String? _motivoSelecionado;
@@ -69,7 +70,20 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
     String textoDigitado = _observacaoController.text.trim();
     String obsFinal = textoDigitado.isNotEmpty ? textoDigitado : 'Não informada';
 
-    return '''------------- *${widget.tipo.toUpperCase()}* -------------
+    final isOutros = widget.tipo.toLowerCase() == 'outros';
+    final displayTipo = (widget.tipo.toLowerCase() == 'coleta' || widget.tipo.toLowerCase() == 'recolha') ? 'COLETA' : widget.tipo.toUpperCase();
+    
+    if (isOutros) {
+      return '''------------- *$displayTipo* -------------
+*Status:* ❌ Falha
+*Observações:* ${textoDigitado.isEmpty ? 'Nenhuma' : textoDigitado}
+*Cliente:* ${widget.clienteNome}
+*Endereço:* ${widget.endereco}
+*Motorista:* $motoristaNome
+*Hora:* $horaFormatada'''.trim();
+    }
+
+    return '''------------- *$displayTipo* -------------
 *Status:* ❌ Falha
 *Motivo:* ${_motivoSelecionado ?? 'Não informado'}
 *Obs:* $obsFinal
@@ -144,6 +158,7 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
         'observacoes': observacoes,
         'data_conclusao': DateTime.now().toUtc().toIso8601String(),
       };
+      
       if (fotoUrl != null) {
         updateData['foto_url'] = fotoUrl;
       }

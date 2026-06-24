@@ -31,7 +31,7 @@ class ModalBaixaEntrega extends StatefulWidget {
 }
 
 class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
-  final List<String> _opcoesRecebedor = ['Zelador', 'Síndico', 'Porteiro', 'Faxineiro', 'Morador', 'Locker', 'Correios', 'Outros'];
+  final List<String> _opcoesRecebedor = ['Zelador', 'Síndico', 'Porteiro', 'Faxineiro', 'Morador', 'Locker', 'Correios', 'Registrada', 'Outros'];
   String? _recebedorSelecionado;
   final TextEditingController _nomeObservacaoController = TextEditingController();
   
@@ -60,9 +60,23 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
     String textoDigitado = _nomeObservacaoController.text.trim();
     String recebedorFinal = textoDigitado.isNotEmpty ? '${_recebedorSelecionado ?? ''} $textoDigitado'.trim() : (_recebedorSelecionado ?? 'Não informado');
 
-    return '''------------- *${widget.tipo.toUpperCase()}* -------------
+    final isOutros = widget.tipo.toLowerCase() == 'outros';
+    final displayTipo = (widget.tipo.toLowerCase() == 'coleta' || widget.tipo.toLowerCase() == 'recolha') ? 'COLETA' : widget.tipo.toUpperCase();
+    final isColeta = (widget.tipo.toLowerCase() == 'coleta' || widget.tipo.toLowerCase() == 'recolha');
+    
+    if (isOutros) {
+      return '''------------- *$displayTipo* -------------
 *Status:* ✅ Sucesso
-*Recebido por:* $recebedorFinal
+*Observações:* ${textoDigitado.isEmpty ? 'Nenhuma' : textoDigitado}
+*Cliente:* ${widget.clienteNome}
+*Endereço:* ${widget.endereco}
+*Motorista:* $motoristaNome
+*Hora:* $horaFormatada'''.trim();
+    }
+    
+    return '''------------- *$displayTipo* -------------
+*Status:* ✅ Sucesso
+*${isColeta ? 'Entregue por' : 'Recebido por'}:* $recebedorFinal
 *Cliente:* ${widget.clienteNome}
 *Endereço:* ${widget.endereco}
 *Motorista:* $motoristaNome
@@ -136,6 +150,7 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
         'observacoes': observacoes,
         'data_conclusao': DateTime.now().toUtc().toIso8601String(),
       };
+
       if (fotoUrl != null) {
         updateData['foto_url'] = fotoUrl;
       }
@@ -145,7 +160,10 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
       // Sucesso absoluto online
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Dados enviados com sucesso!'), backgroundColor: AppColors.successGreen),
+          const SnackBar(
+            content: Text('Dados enviados com sucesso!'), 
+            backgroundColor: AppColors.successGreen
+          ),
         );
       }
 
@@ -241,7 +259,7 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
             const Text('Confirmar Entrega', style: TextStyle(color: AppColors.textWhite, fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             
-            const Text('Quem recebeu?', style: TextStyle(color: AppColors.textGrey, fontSize: 14)),
+            Text((widget.tipo.toLowerCase() == 'coleta' || widget.tipo.toLowerCase() == 'recolha') ? 'Quem entregou?' : 'Quem recebeu?', style: const TextStyle(color: AppColors.textGrey, fontSize: 14)),
             const SizedBox(height: 8),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,

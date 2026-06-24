@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:android_intent_plus/android_intent.dart';
@@ -13,6 +12,7 @@ class CardAlertaOverlay extends StatefulWidget {
 }
 
 class _CardAlertaOverlayState extends State<CardAlertaOverlay> {
+
   Future<void> dispararSomDeChamadaNativo() async {
     try {
       FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -43,13 +43,6 @@ class _CardAlertaOverlayState extends State<CardAlertaOverlay> {
   void initState() {
     super.initState();
     dispararSomDeChamadaNativo(); // Dispara o som nativo ao abrir o Overlay
-
-    Future.delayed(const Duration(seconds: 5), () async {
-      if (mounted) {
-        await AudioService.stop();
-        FlutterOverlayWindow.closeOverlay();
-      }
-    });
   }
 
   @override

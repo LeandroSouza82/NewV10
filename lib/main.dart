@@ -8,6 +8,7 @@ import 'views/splash_view.dart';
 import 'views/components/card_alerta_overlay.dart';
 import 'services/sync_service.dart';
 import 'services/notification_service.dart';
+import 'services/presence_service.dart';
 
 @pragma("vm:entry-point")
 void overlayMain() async {
@@ -51,6 +52,9 @@ void main() async {
 
   // Inicializa o serviço de sincronização offline
   SyncService.initialize();
+  
+  // Inicializa o serviço de presença do motorista (Heartbeat)
+  PresenceService.initialize();
   
   runApp(const AppDoMotorista());
 }

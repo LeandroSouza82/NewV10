@@ -4,15 +4,30 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/widgets.dart';
 import 'supabase_service.dart';
+
+class _SyncLifecycleObserver extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      SupabaseService.checkAndReconnect();
+      SyncService.sincronizarFila();
+    }
+  }
+}
 
 class SyncService {
   static const String _filaKey = 'fila_entregas_offline';
   static bool _isSyncing = false;
   static List<String> idsFinalizadosLocalmente = [];
 
+  static final _lifecycleObserver = _SyncLifecycleObserver();
+
   // Inicia o listener de conectividade
   static void initialize() {
+    WidgetsBinding.instance.addObserver(_lifecycleObserver);
+
     Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
       if (results.isNotEmpty && results.first != ConnectivityResult.none) {
         sincronizarFila();
