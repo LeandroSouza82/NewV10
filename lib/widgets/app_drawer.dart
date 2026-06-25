@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
 import '../views/meu_desempenho_view.dart';
 import '../views/historico_dia_view.dart';
+import '../views/lista_ocorrencias_view.dart';
 
 class AppDrawer extends StatelessWidget {
   final Map<String, dynamic>? motorista;
@@ -152,7 +153,7 @@ class AppDrawer extends StatelessWidget {
                             
                             // 2. Erro no banco ou sem dados
                             if (snapshot.hasError || !snapshot.hasData) {
-                              print('🕵️ ERRO OU SEM DADOS: ${snapshot.error}');
+                              debugPrint('🕵️ ERRO OU SEM DADOS: ${snapshot.error}');
                               return const Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
@@ -164,7 +165,7 @@ class AppDrawer extends StatelessWidget {
                             }
 
                             final registros = snapshot.data!;
-                            print('🕵️ SUCESSO: O banco retornou ${registros.length} entregas para o Drawer!');
+                            debugPrint('🕵️ SUCESSO: O banco retornou ${registros.length} entregas para o Drawer!');
                             
                             // Filtro de data feito direto no aplicativo
                             final agora = DateTime.now().toLocal();
@@ -202,7 +203,7 @@ class AppDrawer extends StatelessWidget {
                               }
                             }
 
-                            print('🕵️ PLACAR: Feitas: $totalFeitas | Pend: $totalPendentes | Falha: $totalFalhas');
+                            debugPrint('🕵️ PLACAR: Feitas: $totalFeitas | Pend: $totalPendentes | Falha: $totalFalhas');
 
                             return Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -253,8 +254,13 @@ class AppDrawer extends StatelessWidget {
                     ListTile(
                       leading: const Icon(Icons.report_problem_outlined, color: AppColors.textWhite),
                       title: const Text('Minhas Ocorrências', style: TextStyle(color: AppColors.textWhite)),
-                      trailing: _buildEmBreveBadge(),
-                      onTap: () => _mostrarAvisoDesenvolvimento(context),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ListaOcorrenciasView()),
+                        );
+                      },
                     ),
                     ListTile(
                       leading: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.textWhite),

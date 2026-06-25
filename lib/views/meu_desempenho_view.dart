@@ -407,7 +407,7 @@ class _BarraHorizontal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pctStr = total == 0 ? '0' : '${(proporcao * 100).toStringAsFixed(0)}';
+    final pctStr = total == 0 ? '0' : (proporcao * 100).toStringAsFixed(0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
 import '../services/supabase_service.dart';
 
-enum _Periodo { hoje, sete_dias, mes_atual }
+enum _Periodo { hoje, seteDias, mesAtual }
 
 class HistoricoDiaView extends StatefulWidget {
   const HistoricoDiaView({super.key});
@@ -45,9 +45,9 @@ class _HistoricoDiaViewState extends State<HistoricoDiaView> {
         if (agora.isBefore(limiteInicio)) {
           limiteInicio = limiteInicio.subtract(const Duration(days: 1));
         }
-      case _Periodo.sete_dias:
+      case _Periodo.seteDias:
         limiteInicio = DateTime(agora.year, agora.month, agora.day - 6, 0, 0);
-      case _Periodo.mes_atual:
+      case _Periodo.mesAtual:
         limiteInicio = DateTime(agora.year, agora.month, 1, 0, 0);
     }
 
@@ -314,18 +314,18 @@ class _HistoricoDiaViewState extends State<HistoricoDiaView> {
                 const SizedBox(width: 8),
                 _PeriodoChip(
                   label: '7 dias',
-                  ativo: _periodoSelecionado == _Periodo.sete_dias,
+                  ativo: _periodoSelecionado == _Periodo.seteDias,
                   onTap: () => setState(() {
-                    _periodoSelecionado = _Periodo.sete_dias;
+                    _periodoSelecionado = _Periodo.seteDias;
                     _futureEntregas = _carregarEntregas(_periodoSelecionado);
                   }),
                 ),
                 const SizedBox(width: 8),
                 _PeriodoChip(
                   label: 'Este mês',
-                  ativo: _periodoSelecionado == _Periodo.mes_atual,
+                  ativo: _periodoSelecionado == _Periodo.mesAtual,
                   onTap: () => setState(() {
-                    _periodoSelecionado = _Periodo.mes_atual;
+                    _periodoSelecionado = _Periodo.mesAtual;
                     _futureEntregas = _carregarEntregas(_periodoSelecionado);
                   }),
                 ),
@@ -408,7 +408,7 @@ class _HistoricoDiaViewState extends State<HistoricoDiaView> {
                 return ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                   itemCount: lista.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (context, index) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final entrega = lista[index];
                     final status = (entrega['status'] ?? '').toString().toLowerCase();
