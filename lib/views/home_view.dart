@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../core/app_colors.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/app_drawer.dart';
 import '../widgets/info_card.dart';
 import '../widgets/success_status.dart';
 import '../widgets/draggable_route_list.dart';
@@ -334,122 +335,14 @@ class _HomeViewState extends State<HomeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(
-        backgroundColor: AppColors.backgroundBody,
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Cabeçalho do Drawer Customizado
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: AppColors.textGrey.withValues(alpha: 0.2),
-                    ),
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: _isLoadingPhoto ? null : () => _mostrarOpcoesDeFoto(context),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.cardBackground,
-                              border: Border.all(
-                                color: AppColors.successGreen.withValues(alpha: 0.5),
-                                width: 2,
-                              ),
-                              image: _motorista != null && _motorista!['avatar_path'] != null
-                                  ? DecorationImage(
-                                      image: NetworkImage(_motorista!['avatar_path']),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: _motorista == null || _motorista!['avatar_path'] == null
-                                ? const Icon(
-                                    Icons.person,
-                                    color: AppColors.textGrey,
-                                    size: 40,
-                                  )
-                                : null,
-                          ),
-                          if (_isLoadingPhoto)
-                            const CircularProgressIndicator(color: AppColors.successGreen),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _motorista != null 
-                          ? '$_saudacao, ${_motorista!['nome'] ?? 'Motorista'}'
-                          : 'Carregando...',
-                      style: const TextStyle(
-                        color: AppColors.textWhite,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _motorista != null ? (_motorista!['email'] ?? 'V10 Delivery') : 'V10 Delivery',
-                      style: TextStyle(
-                        color: AppColors.textGrey.withValues(alpha: 0.8),
-                        fontSize: 14,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.map, color: AppColors.textWhite),
-                title: const Text('Navegador Padrão', style: TextStyle(color: AppColors.textWhite)),
-                subtitle: Text(
-                  navegadorSelecionado == 'waze' ? 'Waze' : 'Google Maps',
-                  style: TextStyle(color: AppColors.textGrey.withValues(alpha: 0.8)),
-                ),
-                onTap: () => _mostrarDialogoNavegador(context),
-              ),
-              const Spacer(),
-              // Botão de Sair
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                child: ListTile(
-                  leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                  title: const Text(
-                    'Sair',
-                    style: TextStyle(
-                      color: Colors.redAccent,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  tileColor: Colors.redAccent.withValues(alpha: 0.08),
-                  onTap: () {
-                    Navigator.of(context).pop(); // Fecha o Drawer
-                    _fazerLogout();
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
+      drawer: AppDrawer(
+        motorista: _motorista,
+        saudacao: _saudacao,
+        isLoadingPhoto: _isLoadingPhoto,
+        navegadorSelecionado: navegadorSelecionado,
+        onTapFoto: () => _mostrarOpcoesDeFoto(context),
+        onTapNavegador: () => _mostrarDialogoNavegador(context),
+        onTapSair: _fazerLogout,
       ),
       body: Stack(
         children: [

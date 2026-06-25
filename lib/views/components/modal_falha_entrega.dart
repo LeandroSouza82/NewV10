@@ -155,6 +155,7 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
       final updateData = <String, dynamic>{
         'status': 'falha',
         'motivo_nao_entrega': motivo,
+        'tipo_recebedor': null,
         'observacoes': observacoes,
         'data_conclusao': DateTime.now().toUtc().toIso8601String(),
       };
