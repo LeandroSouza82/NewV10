@@ -39,7 +39,6 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
     'Local Fechado',
     'Falta de documentos',
     'Ata não registrada',
-    'Não Registrada',
     'Outros',
   ];
   String? _motivoSelecionado;
@@ -65,18 +64,16 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
     }
   }
 
-  String _gerarMensagemWhatsApp(String motoristaNome) {
+  String _gerarMensagemWhatsApp(String motoristaNome, String observacaoFinal) {
     final horaFormatada = DateFormat('HH:mm').format(DateTime.now());
-    String textoDigitado = _observacaoController.text.trim();
-    String obsFinal = textoDigitado.isNotEmpty ? textoDigitado : 'Não informada';
 
     final isOutros = widget.tipo.toLowerCase() == 'outros';
-    final displayTipo = (widget.tipo.toLowerCase() == 'coleta' || widget.tipo.toLowerCase() == 'recolha') ? 'COLETA' : widget.tipo.toUpperCase();
+    final displayTipo = isOutros ? 'OUTROS/ATA' : ((widget.tipo.toLowerCase() == 'coleta' || widget.tipo.toLowerCase() == 'recolha') ? 'COLETA' : widget.tipo.toUpperCase());
     
     if (isOutros) {
       return '''------------- *$displayTipo* -------------
 *Status:* ❌ Falha
-*Observações:* ${textoDigitado.isEmpty ? 'Nenhuma' : textoDigitado}
+*Observações:* $observacaoFinal
 *Cliente:* ${widget.clienteNome}
 *Endereço:* ${widget.endereco}
 *Motorista:* $motoristaNome
@@ -86,7 +83,7 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
     return '''------------- *$displayTipo* -------------
 *Status:* ❌ Falha
 *Motivo:* ${_motivoSelecionado ?? 'Não informado'}
-*Obs:* $obsFinal
+*Obs:* $observacaoFinal
 *Cliente:* ${widget.clienteNome}
 *Endereço:* ${widget.endereco}
 *Motorista:* $motoristaNome
@@ -113,7 +110,16 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
 
     final String entregaId = widget.rota['id'].toString();
     final String motivo = _motivoSelecionado!;
-    final String observacoes = _observacaoController.text.trim();
+    String textoDigitado = _observacaoController.text.trim();
+    String observacaoFinal = textoDigitado;
+
+    if (widget.tipo.toLowerCase() == 'outros') {
+      observacaoFinal = textoDigitado.isEmpty 
+          ? motivo 
+          : '$motivo - $textoDigitado';
+    } else {
+      observacaoFinal = textoDigitado.isEmpty ? 'Nenhuma' : textoDigitado;
+    }
     final String? tempImagePath = _foto?.path;
 
     // Adiciona imediatamente à lista de exclusão para evitar efeito ioiô
@@ -133,7 +139,7 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
     }
 
     if (!hasInternet) {
-      await _salvarOfflineECompartilhar(entregaId, tempImagePath, motivo, observacoes, motoristaNome);
+      await _salvarOfflineECompartilhar(entregaId, tempImagePath, motivo, observacaoFinal, motoristaNome);
       return;
     }
 
@@ -156,7 +162,7 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
         'status': 'falha',
         'motivo_nao_entrega': motivo,
         'tipo_recebedor': null,
-        'observacoes': observacoes,
+        'observacoes': observacaoFinal,
         'data_conclusao': DateTime.now().toUtc().toIso8601String(),
       };
       
@@ -173,7 +179,7 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
         );
       }
 
-      final texto = _gerarMensagemWhatsApp(motoristaNome);
+      final texto = _gerarMensagemWhatsApp(motoristaNome, observacaoFinal);
       if (tempImagePath != null) {
         await SharePlus.instance.share(ShareParams(files: [XFile(tempImagePath)], text: texto));
         if (await File(tempImagePath).exists()) {
@@ -202,10 +208,10 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
       }
     } on SocketException catch (e) {
       print('ERRO DE REDE: $e');
-      await _salvarOfflineECompartilhar(entregaId, tempImagePath, motivo, observacoes, motoristaNome);
+      await _salvarOfflineECompartilhar(entregaId, tempImagePath, motivo, observacaoFinal, motoristaNome);
     } on TimeoutException catch (e) {
       print('ERRO DE TIMEOUT: $e');
-      await _salvarOfflineECompartilhar(entregaId, tempImagePath, motivo, observacoes, motoristaNome);
+      await _salvarOfflineECompartilhar(entregaId, tempImagePath, motivo, observacaoFinal, motoristaNome);
     } catch (e) {
       print('ERRO GENÉRICO NO SUPABASE: $e');
       if (mounted) {
@@ -231,7 +237,7 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
       );
     }
 
-    final texto = _gerarMensagemWhatsApp(motoristaNome);
+    final texto = _gerarMensagemWhatsApp(motoristaNome, observacoes);
     if (tempImagePath != null) {
       await SharePlus.instance.share(ShareParams(files: [XFile(tempImagePath)], text: texto));
     } else {

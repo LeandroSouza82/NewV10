@@ -55,19 +55,19 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
     }
   }
 
-  String _gerarMensagemWhatsApp(String motoristaNome) {
+  String _gerarMensagemWhatsApp(String motoristaNome, String observacaoFinal) {
     final horaFormatada = DateFormat('HH:mm').format(DateTime.now());
     String textoDigitado = _nomeObservacaoController.text.trim();
     String recebedorFinal = textoDigitado.isNotEmpty ? '${_recebedorSelecionado ?? ''} $textoDigitado'.trim() : (_recebedorSelecionado ?? 'Não informado');
 
     final isOutros = widget.tipo.toLowerCase() == 'outros';
-    final displayTipo = (widget.tipo.toLowerCase() == 'coleta' || widget.tipo.toLowerCase() == 'recolha') ? 'COLETA' : widget.tipo.toUpperCase();
+    final displayTipo = isOutros ? 'OUTROS/ATA' : ((widget.tipo.toLowerCase() == 'coleta' || widget.tipo.toLowerCase() == 'recolha') ? 'COLETA' : widget.tipo.toUpperCase());
     final isColeta = (widget.tipo.toLowerCase() == 'coleta' || widget.tipo.toLowerCase() == 'recolha');
     
     if (isOutros) {
       return '''------------- *$displayTipo* -------------
 *Status:* ✅ Sucesso
-*Observações:* ${textoDigitado.isEmpty ? 'Nenhuma' : textoDigitado}
+*Observações:* $observacaoFinal
 *Cliente:* ${widget.clienteNome}
 *Endereço:* ${widget.endereco}
 *Motorista:* $motoristaNome
@@ -103,7 +103,17 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
 
     final String entregaId = widget.rota['id'].toString();
     final String recebedor = _recebedorSelecionado!;
-    final String observacoes = _nomeObservacaoController.text.trim();
+    
+    String textoDigitado = _nomeObservacaoController.text.trim();
+    String observacaoFinal = textoDigitado;
+
+    if (widget.tipo.toLowerCase() == 'outros') {
+      observacaoFinal = textoDigitado.isEmpty 
+          ? recebedor 
+          : '$recebedor - $textoDigitado';
+    } else {
+      observacaoFinal = textoDigitado.isEmpty ? 'Nenhuma' : textoDigitado;
+    }
     final String? tempImagePath = _foto?.path;
 
     // Adiciona imediatamente à lista de exclusão para evitar efeito ioiô
@@ -124,7 +134,7 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
 
     if (!hasInternet) {
       // Estritamente offline sem mascarar erro de banco
-      await _salvarOfflineECompartilhar(entregaId, tempImagePath, recebedor, observacoes, motoristaNome);
+      await _salvarOfflineECompartilhar(entregaId, tempImagePath, recebedor, observacaoFinal, motoristaNome);
       return;
     }
 
@@ -147,7 +157,7 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
       final updateData = {
         'status': 'concluido',
         'recebedor_tipo': recebedor,
-        'observacoes': observacoes,
+        'observacoes': observacaoFinal,
         'data_conclusao': DateTime.now().toUtc().toIso8601String(),
       };
 
@@ -167,7 +177,7 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
         );
       }
 
-      final texto = _gerarMensagemWhatsApp(motoristaNome);
+      final texto = _gerarMensagemWhatsApp(motoristaNome, observacaoFinal);
       if (tempImagePath != null) {
         await SharePlus.instance.share(ShareParams(files: [XFile(tempImagePath)], text: texto));
         if (await File(tempImagePath).exists()) {
@@ -196,10 +206,10 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
       }
     } on SocketException catch (e) {
       print('ERRO DE REDE: $e');
-      await _salvarOfflineECompartilhar(entregaId, tempImagePath, recebedor, observacoes, motoristaNome);
+      await _salvarOfflineECompartilhar(entregaId, tempImagePath, recebedor, observacaoFinal, motoristaNome);
     } on TimeoutException catch (e) {
       print('ERRO DE TIMEOUT: $e');
-      await _salvarOfflineECompartilhar(entregaId, tempImagePath, recebedor, observacoes, motoristaNome);
+      await _salvarOfflineECompartilhar(entregaId, tempImagePath, recebedor, observacaoFinal, motoristaNome);
     } catch (e) {
       print('ERRO GENÉRICO NO SUPABASE: $e');
       if (mounted) {
@@ -225,7 +235,7 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
       );
     }
 
-    final texto = _gerarMensagemWhatsApp(motoristaNome);
+    final texto = _gerarMensagemWhatsApp(motoristaNome, observacoes);
     if (tempImagePath != null) {
       await SharePlus.instance.share(ShareParams(files: [XFile(tempImagePath)], text: texto));
     } else {
