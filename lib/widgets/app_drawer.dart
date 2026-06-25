@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
 import '../views/meu_desempenho_view.dart';
+import '../views/historico_dia_view.dart';
 
 class AppDrawer extends StatelessWidget {
   final Map<String, dynamic>? motorista;
@@ -241,8 +242,13 @@ class AppDrawer extends StatelessWidget {
                     ListTile(
                       leading: const Icon(Icons.history, color: AppColors.textWhite),
                       title: const Text('Histórico do Dia', style: TextStyle(color: AppColors.textWhite)),
-                      trailing: _buildEmBreveBadge(),
-                      onTap: () => _mostrarAvisoDesenvolvimento(context),
+                      onTap: () {
+                        Navigator.pop(context); // Fecha o Drawer
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const HistoricoDiaView()),
+                        );
+                      },
                     ),
                     ListTile(
                       leading: const Icon(Icons.report_problem_outlined, color: AppColors.textWhite),
