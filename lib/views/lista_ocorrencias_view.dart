@@ -102,6 +102,18 @@ class _ListaOcorrenciasViewState extends State<ListaOcorrenciasView> {
   }
 
   Future<void> _reenviarWhatsApp(Map<String, dynamic> ocorrencia) async {
+    final ultimaEnvioStr = ocorrencia['ultima_mensagem_enviada']?.toString();
+    final ultimaEnvio = ultimaEnvioStr != null && ultimaEnvioStr.isNotEmpty
+        ? DateTime.tryParse(ultimaEnvioStr)?.toLocal() ?? DateTime(2000)
+        : DateTime(2000);
+
+    final diferenca = DateTime.now().difference(ultimaEnvio);
+
+    if (diferenca.inMinutes < 5) {
+      // Brecha fechada: aqui interrompemos o fluxo imediatamente
+      return; 
+    }
+
     final messenger = ScaffoldMessenger.of(context);
     
     final prefs = await SharedPreferences.getInstance();
@@ -141,13 +153,17 @@ class _ListaOcorrenciasViewState extends State<ListaOcorrenciasView> {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       }
       
-      // Atualizar ultima_mensagem_enviada
+      // Travar o botão na hora atualizando o objeto local
+      ocorrencia['ultima_mensagem_enviada'] = DateTime.now().toUtc().toIso8601String();
+      if (mounted) setState(() {});
+
+      // Atualizar no Supabase
       await Supabase.instance.client
           .from('ocorrencias')
-          .update({'ultima_mensagem_enviada': DateTime.now().toUtc().toIso8601String()})
+          .update({'ultima_mensagem_enviada': ocorrencia['ultima_mensagem_enviada']})
           .eq('id', ocorrencia['id']);
           
-      // Recarregar a lista silenciosamente
+      // Recarregar a lista em background para garantir sincronia real
       _carregar().then((lista) {
         if (mounted) setState(() => _futureOcorrencias = Future.value(lista));
       });
