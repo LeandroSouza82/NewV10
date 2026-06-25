@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
+import '../views/meu_desempenho_view.dart';
 
 class AppDrawer extends StatelessWidget {
   final Map<String, dynamic>? motorista;
@@ -229,8 +230,13 @@ class AppDrawer extends StatelessWidget {
                     ListTile(
                       leading: const Icon(Icons.bar_chart, color: AppColors.textWhite),
                       title: const Text('Meu Desempenho', style: TextStyle(color: AppColors.textWhite)),
-                      trailing: _buildEmBreveBadge(),
-                      onTap: () => _mostrarAvisoDesenvolvimento(context),
+                      onTap: () {
+                        Navigator.pop(context); // Fecha o Drawer
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const MeuDesempenhoView()),
+                        );
+                      },
                     ),
                     ListTile(
                       leading: const Icon(Icons.history, color: AppColors.textWhite),
