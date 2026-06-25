@@ -165,8 +165,14 @@ class AppDrawer extends StatelessWidget {
                             print('🕵️ SUCESSO: O banco retornou ${registros.length} entregas para o Drawer!');
                             
                             // Filtro de data feito direto no aplicativo
-                            final hoje = DateTime.now();
-                            final inicioDoDia = DateTime(hoje.year, hoje.month, hoje.day);
+                            final agora = DateTime.now().toLocal();
+                            // Define o limite como sendo 4h da manhã de hoje
+                            DateTime limiteReset = DateTime(agora.year, agora.month, agora.day, 4, 0);
+
+                            // Se a hora atual for antes das 4h da manhã, a diária iniciou às 4h do dia anterior
+                            if (agora.isBefore(limiteReset)) {
+                              limiteReset = limiteReset.subtract(const Duration(days: 1));
+                            }
                             
                             int totalFeitas = 0;
                             int totalFalhas = 0;
@@ -177,8 +183,8 @@ class AppDrawer extends StatelessWidget {
                               final dataStr = e['created_at'] ?? e['criado_em'];
                               if (dataStr != null) {
                                 final dataCriacao = DateTime.tryParse(dataStr.toString())?.toLocal();
-                                if (dataCriacao != null && dataCriacao.isBefore(inicioDoDia)) {
-                                  continue; // Pula as que não são de hoje
+                                if (dataCriacao != null && dataCriacao.isBefore(limiteReset)) {
+                                  continue; // Ignora entregas de diárias passadas
                                 }
                               }
 
