@@ -1,29 +1,16 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'core/app_colors.dart';
 import 'services/permission_service.dart';
 import 'services/supabase_service.dart';
 import 'views/splash_view.dart';
-import 'views/components/card_alerta_overlay.dart';
 import 'services/sync_service.dart';
 import 'services/notification_service.dart';
 import 'services/presence_service.dart';
-
-@pragma("vm:entry-point")
-void overlayMain() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await NotificationService.initialize();
-  runApp(
-    const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Material(
-        color: Colors.transparent,
-        child: CardAlertaOverlay(),
-      ),
-    ),
-  );
-}
+import 'services/call_kit_listener.dart';
 
 // Mantenha suas credenciais finais reais aqui
 const String supabaseUrl = 'https://uqxoadxqcwidxqsfayem.supabase.co';
@@ -49,6 +36,9 @@ void main() async {
   
   // Inicializa o serviço de notificações locais
   await NotificationService.initialize();
+  
+  // Escuta os eventos do CallKit (como Aceitar corrida)
+  CallKitListener.listenEvents();
 
   // Inicializa o serviço de sincronização offline
   SyncService.initialize();
@@ -56,6 +46,11 @@ void main() async {
   // Inicializa o serviço de presença do motorista (Heartbeat)
   PresenceService.initialize();
   
+  // Requisita permissão de notificação (VITAL para Android 13+)
+  if (await Permission.notification.isDenied) {
+    await Permission.notification.request();
+  }
+
   runApp(const AppDoMotorista());
 }
 
@@ -76,4 +71,3 @@ class AppDoMotorista extends StatelessWidget {
     );
   }
 }
-

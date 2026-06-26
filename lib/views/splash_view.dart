@@ -4,8 +4,6 @@ import '../core/app_colors.dart';
 import '../services/supabase_service.dart';
 import 'home_view.dart';
 import 'login_view.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
-import 'permission_onboarding_view.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -64,14 +62,7 @@ class _SplashViewState extends State<SplashView>
       await SupabaseService.logout();
     }
 
-    Widget nextView;
-    if (vaiParaHome) {
-      bool hasOverlayPerm = await FlutterOverlayWindow.isPermissionGranted();
-      if (!mounted) return;
-      nextView = hasOverlayPerm ? const HomeView() : const PermissionOnboardingView();
-    } else {
-      nextView = const LoginView();
-    }
+    Widget nextView = vaiParaHome ? const HomeView() : const LoginView();
 
     if (!mounted) return;
 

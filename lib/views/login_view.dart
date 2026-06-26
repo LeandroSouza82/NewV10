@@ -8,8 +8,6 @@ import '../core/app_colors.dart';
 import '../services/supabase_service.dart';
 import 'home_view.dart';
 import 'register_view.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
-import 'permission_onboarding_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -102,13 +100,11 @@ class _LoginViewState extends State<LoginView> {
         await prefs.remove('manter_logado');
       }
       
-      // Navega para a Home ou para a tela de Permissões
-      bool hasOverlayPerm = await FlutterOverlayWindow.isPermissionGranted();
       if (!mounted) return;
       
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => hasOverlayPerm ? const HomeView() : const PermissionOnboardingView(),
+          builder: (context) => const HomeView(),
         ),
       );
     } catch (e) {

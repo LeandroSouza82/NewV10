@@ -19,11 +19,7 @@ class PermissionService {
       await Permission.locationAlways.request();
     }
 
-    // 4. Solicitar Sobreposição de Tela (System Alert Window)
-    var overlayStatus = await Permission.systemAlertWindow.status;
-    if (!overlayStatus.isGranted) {
-      await Permission.systemAlertWindow.request();
-    }
+
 
     // 5. Ignorar Otimização de Bateria (Garante que o app não seja morto pelo Android)
     var batteryStatus = await Permission.ignoreBatteryOptimizations.status;

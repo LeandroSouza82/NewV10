@@ -12,8 +12,8 @@ import '../widgets/draggable_route_list.dart';
 import '../services/supabase_service.dart';
 import '../services/sync_service.dart';
 import '../services/location_service.dart';
+
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'splash_view.dart';
 
@@ -183,20 +183,6 @@ class _HomeViewState extends State<HomeView> {
         if (_isOnline) {
           LocationService.iniciarRastreamento(id);
           SupabaseService.iniciarEscutaNovasEntregas(id);
-          
-          final isGranted = await FlutterOverlayWindow.isPermissionGranted();
-          if (!isGranted) {
-            final granted = await FlutterOverlayWindow.requestPermission();
-            if (granted == false && mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('A permissão de sobreposição é necessária para exibir alertas de nova entrega.'),
-                  backgroundColor: Colors.orange,
-                  duration: Duration(seconds: 4),
-                ),
-              );
-            }
-          }
         } else {
           LocationService.pararRastreamento();
           SupabaseService.pararEscutaNovasEntregas();

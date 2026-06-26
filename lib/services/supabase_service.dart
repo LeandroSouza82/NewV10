@@ -1,15 +1,16 @@
 // ignore_for_file: avoid_print
 
 import 'dart:async';
+
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'audio_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
-import 'package:app_do_motorista/services/notification_service.dart';
 
+import 'package:app_do_motorista/services/notification_service.dart';
+import 'package:app_do_motorista/services/call_kit_service.dart';
 class SupabaseService {
   static final SupabaseClient client = Supabase.instance.client;
   
@@ -115,6 +116,7 @@ class SupabaseService {
         value: motoristaId,
       ),
       callback: (payload) async {
+        WidgetsFlutterBinding.ensureInitialized();
         print('🔔 Alteração de entrega recebida via Realtime: ${payload.newRecord}');
         
         final newRecord = payload.newRecord;
@@ -135,24 +137,8 @@ class SupabaseService {
                                  lifecycleState == AppLifecycleState.hidden;
             
             if (isBackground) {
-              final isGranted = await FlutterOverlayWindow.isPermissionGranted();
-              if (isGranted) {
-                final isActive = await FlutterOverlayWindow.isActive();
-                if (!isActive) {
-                  await AudioService.playChamaNoOverlay();
-                  await FlutterOverlayWindow.showOverlay(
-                    enableDrag: true,
-                    overlayTitle: "Nova Entrega",
-                    overlayContent: "Você tem uma nova atribuição",
-                    flag: OverlayFlag.defaultFlag,
-                    visibility: NotificationVisibility.visibilityPublic,
-                    positionGravity: PositionGravity.auto,
-                    height: 300,
-                    width: WindowSize.matchParent,
-                  );
-                  _agendarFechamentoOverlay();
-                }
-              }
+              // Removido: FlutterOverlayWindow.showOverlay(...)
+              await CallKitService.showRouteCall(newRecord);
             }
           }
         }
@@ -161,16 +147,6 @@ class SupabaseService {
     
     Future.microtask(() {
       _entregasChannel!.subscribe();
-    });
-  }
-
-  static void _agendarFechamentoOverlay() {
-    Future.delayed(const Duration(seconds: 30), () async {
-      bool isActive = await FlutterOverlayWindow.isActive();
-      if (isActive) {
-        debugPrint('Fechando overlay externamente por timeout...');
-        await FlutterOverlayWindow.closeOverlay();
-      }
     });
   }
 
@@ -243,27 +219,10 @@ class SupabaseService {
               if (!isForeground) {
                 print('✅ Rota REALMENTE nova detectada via REST e app em background! Disparando overlay...');
                 try {
-                  final bool isGranted = await FlutterOverlayWindow.isPermissionGranted();
-                  if (isGranted) {
-                    await AudioService.playChamaNoOverlay();
-                    await FlutterOverlayWindow.showOverlay(
-                      enableDrag: true,
-                      overlayTitle: "V10 Delivery",
-                      overlayContent: "Nova rota disponível",
-                      flag: OverlayFlag.defaultFlag,
-                      visibility: NotificationVisibility.visibilityPublic,
-                      positionGravity: PositionGravity.auto,
-                      height: WindowSize.matchParent,
-                      width: WindowSize.matchParent,
-                    );
-                    _agendarFechamentoOverlay();
-                    print('✅ Overlay disparado com sucesso pelo plugin!');
-                  } else {
-                    print('❌ FALHA: Permissão de sobreposição negada no Android.');
-                  }
-                } catch (e, stacktrace) {
-                  print('🚨 ERRO FATAL AO DESENHAR OVERLAY: $e');
-                  print(stacktrace);
+                  await CallKitService.showRouteCall(list.first);
+                  print('✅ CallKit disparado com sucesso pelo plugin!');
+                } catch (e) {
+                  print('❌ FALHA: Erro ao disparar CallKit no Android: $e');
                 }
               } else {
                 print('✅ Rota nova detectada via REST, mas app está aberto. Não disparando overlay.');
@@ -329,29 +288,12 @@ class SupabaseService {
                   final isForeground = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
 
                   if (!isForeground) {
-                    print('✅ Rota REALMENTE nova detectada via REALTIME e app em background! Disparando overlay...');
+                    print('✅ Rota REALMENTE nova detectada via REALTIME e app em background! Disparando CallKit...');
                     try {
-                      final bool isGranted = await FlutterOverlayWindow.isPermissionGranted();
-                      if (isGranted) {
-                        await AudioService.playChamaNoOverlay();
-                        await FlutterOverlayWindow.showOverlay(
-                          enableDrag: true,
-                          overlayTitle: "V10 Delivery",
-                          overlayContent: "Nova rota disponível",
-                          flag: OverlayFlag.defaultFlag,
-                          visibility: NotificationVisibility.visibilityPublic,
-                          positionGravity: PositionGravity.auto, 
-                          height: WindowSize.matchParent,
-                          width: WindowSize.matchParent,
-                        );
-                        _agendarFechamentoOverlay();
-                        print('✅ Overlay disparado com sucesso pelo plugin!');
-                      } else {
-                        print('❌ FALHA: Permissão de sobreposição negada no Android.');
-                      }
-                    } catch (e, stacktrace) {
-                      print('🚨 ERRO FATAL AO DESENHAR OVERLAY: $e');
-                      print(stacktrace);
+                      await CallKitService.showRouteCall(mapped.first);
+                      print('✅ CallKit disparado com sucesso pelo plugin!');
+                    } catch (e) {
+                      print('❌ FALHA: Erro ao disparar CallKit no Android: $e');
                     }
                   } else {
                     print('✅ Rota nova detectada via REALTIME, mas app está aberto. Não disparando overlay.');
