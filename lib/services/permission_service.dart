@@ -26,6 +26,12 @@ class PermissionService {
     if (!batteryStatus.isGranted) {
       await Permission.ignoreBatteryOptimizations.request();
     }
+
+    // 6. Sobrepor outros Apps (VITAL para o Overlay Nativo V10)
+    var overlayStatus = await Permission.systemAlertWindow.status;
+    if (!overlayStatus.isGranted) {
+      await Permission.systemAlertWindow.request();
+    }
   }
 
   /// Desativa a tela acesa (útil para quando o motorista ficar offline)

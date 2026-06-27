@@ -66,8 +66,8 @@ class _HomeViewState extends State<HomeView> {
         }
       }
     });
-  }
 
+  }
   Future<void> _recarregarDadosAoVoltarOnline() async {
     await _carregarMotorista();
     

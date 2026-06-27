@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/overlayRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@android:color/transparent">
+
+    <!-- Card Bottom Sheet com cantos arredondados no topo -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/overlay_bg"
+        android:paddingTop="12dp"
+        android:paddingBottom="24dp"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:elevation="16dp">
+
+        <!-- Indicador de drag -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:background="#555555"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Sirene + Título -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🚨  NOVA ROTA RECEBIDA!"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:letterSpacing="0.05"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Volume Total (destaque dinâmico e vertical) -->
+        <TextView
+            android:id="@+id/tvVolume"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:singleLine="false"
+            android:maxLines="6"
+            android:lineSpacingExtra="4dp"
+            android:text="📦  5 pedidos e 3 entregas"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:gravity="start|center_vertical"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Trajeto Resumido -->
+        <TextView
+            android:id="@+id/tvTrajeto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📍  Palhoça · São José"
+            android:textColor="#8A94A6"
+            android:textSize="15sp"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Botões -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <!-- Botão ANULAR -->
+            <TextView
+                android:id="@+id/btnAnular"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="ANULAR"
+                android:textColor="#8A94A6"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@drawable/btn_anular_bg"
+                android:layout_marginEnd="8dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- Botão IR PARA O APP -->
+            <TextView
+                android:id="@+id/btnIrParaApp"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="IR PARA O APP"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@drawable/btn_ir_app_bg"
+                android:layout_marginStart="8dp"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

@@ -10,7 +10,6 @@ import 'views/splash_view.dart';
 import 'services/sync_service.dart';
 import 'services/notification_service.dart';
 import 'services/presence_service.dart';
-import 'services/call_kit_listener.dart';
 
 // Mantenha suas credenciais finais reais aqui
 const String supabaseUrl = 'https://uqxoadxqcwidxqsfayem.supabase.co';
@@ -37,8 +36,7 @@ void main() async {
   // Inicializa o serviço de notificações locais
   await NotificationService.initialize();
   
-  // Escuta os eventos do CallKit (como Aceitar corrida)
-  CallKitListener.listenEvents();
+
 
   // Inicializa o serviço de sincronização offline
   SyncService.initialize();

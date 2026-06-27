@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:app_do_motorista/services/notification_service.dart';
-import 'package:app_do_motorista/services/call_kit_service.dart';
+import 'package:app_do_motorista/services/v10_overlay_bridge.dart';
 class SupabaseService {
   static final SupabaseClient client = Supabase.instance.client;
   
@@ -137,8 +137,8 @@ class SupabaseService {
                                  lifecycleState == AppLifecycleState.hidden;
             
             if (isBackground) {
-              // Removido: FlutterOverlayWindow.showOverlay(...)
-              await CallKitService.showRouteCall(newRecord);
+              print('✅ Rota recebida em background. Disparando overlay nativo...');
+              await V10OverlayBridge.abrirPainelNovaRota(newRecord);
             }
           }
         }
@@ -217,15 +217,10 @@ class SupabaseService {
               final isForeground = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
 
               if (!isForeground) {
-                print('✅ Rota REALMENTE nova detectada via REST e app em background! Disparando overlay...');
-                try {
-                  await CallKitService.showRouteCall(list.first);
-                  print('✅ CallKit disparado com sucesso pelo plugin!');
-                } catch (e) {
-                  print('❌ FALHA: Erro ao disparar CallKit no Android: $e');
-                }
+                print('✅ Rota nova via REST em background. Disparando overlay nativo...');
+                await V10OverlayBridge.abrirPainelResumo(list);
               } else {
-                print('✅ Rota nova detectada via REST, mas app está aberto. Não disparando overlay.');
+                print('✅ Rota nova via REST, app aberto.');
               }
             }
             _idsRotasConhecidas = idsAtuais;
@@ -288,15 +283,10 @@ class SupabaseService {
                   final isForeground = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
 
                   if (!isForeground) {
-                    print('✅ Rota REALMENTE nova detectada via REALTIME e app em background! Disparando CallKit...');
-                    try {
-                      await CallKitService.showRouteCall(mapped.first);
-                      print('✅ CallKit disparado com sucesso pelo plugin!');
-                    } catch (e) {
-                      print('❌ FALHA: Erro ao disparar CallKit no Android: $e');
-                    }
+                    print('✅ Rota via REALTIME em background. Disparando overlay nativo...');
+                    await V10OverlayBridge.abrirPainelResumo(mapped);
                   } else {
-                    print('✅ Rota nova detectada via REALTIME, mas app está aberto. Não disparando overlay.');
+                    print('✅ Rota via REALTIME, app aberto.');
                   }
                 }
                 _idsRotasConhecidas = idsAtuais;
