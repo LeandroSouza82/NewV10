@@ -179,10 +179,13 @@ class SupabaseService {
     Future<void> fetchViaRest() async {
       print('⚡ FALLBACK: Buscando entregas via REST...');
       try {
+        final dataLimite = DateTime.now().toUtc().subtract(const Duration(days: 7)).toIso8601String();
+
         final dados = await client
             .from('entregas')
             .select()
             .eq('motorista_id', currentMotoristaId!)
+            .gte('created_at', dataLimite)
             .or('status.eq.pendente,status.eq.em_rota')
             .order('ordem_logistica', ascending: true);
         
@@ -242,6 +245,7 @@ class SupabaseService {
     // Inicia a escuta do Stream do Realtime
     void startRealtime() {
       print('⚡ REALTIME: Iniciando escuta da stream de entregas...');
+      final dataLimiteDart = DateTime.now().subtract(const Duration(days: 7));
       realtimeSubscription = client
           .from('entregas')
           .stream(primaryKey: ['id'])
@@ -249,7 +253,19 @@ class SupabaseService {
           .map((dados) {
             // Filtro local adicional
             final filtered = dados
-                .where((linha) => linha['status'] == 'pendente' || linha['status'] == 'em_rota')
+                .where((linha) {
+                  final statusOk = (linha['status'] == 'pendente' || linha['status'] == 'em_rota');
+                  if (!statusOk) return false;
+                  
+                  final createdAtStr = linha['created_at'];
+                  if (createdAtStr != null) {
+                    final createdAtDate = DateTime.tryParse(createdAtStr.toString())?.toLocal();
+                    if (createdAtDate != null && createdAtDate.isBefore(dataLimiteDart)) {
+                      return false; // Ignora pendentes antigos demais
+                    }
+                  }
+                  return true;
+                })
                 .map((linha) {
               return {
                 'id': linha['id'].toString(),

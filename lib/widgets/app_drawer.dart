@@ -4,6 +4,7 @@ import '../core/app_colors.dart';
 import '../views/meu_desempenho_view.dart';
 import '../views/historico_dia_view.dart';
 import '../views/lista_ocorrencias_view.dart';
+import '../services/sync_service.dart';
 
 class AppDrawer extends StatelessWidget {
   final Map<String, dynamic>? motorista;
@@ -177,29 +178,46 @@ class AppDrawer extends StatelessWidget {
                               limiteReset = limiteReset.subtract(const Duration(days: 1));
                             }
                             
+                            final dataLimitePendentes = agora.subtract(const Duration(days: 7));
+                            
                             int totalFeitas = 0;
                             int totalFalhas = 0;
                             int totalPendentes = 0;
 
                             for (var e in registros) {
-                              // Verifica a data
-                              final dataStr = e['created_at'] ?? e['criado_em'];
-                              if (dataStr != null) {
-                                final dataCriacao = DateTime.tryParse(dataStr.toString())?.toLocal();
-                                if (dataCriacao != null && dataCriacao.isBefore(limiteReset)) {
-                                  continue; // Ignora entregas de diárias passadas
+                              final status = (e['status'] ?? '').toString().toLowerCase().trim();
+
+                              // ── PENDENTES: contam pelo status ativo, IGNORANDO lixo maior que 7 dias ──
+                              if (status == 'pendente' || status == 'em_rota') {
+                                // Verifica data de criação para blindar contra pendentes muito antigos (ex: lixo de meses atrás)
+                                final createdStr = e['created_at'];
+                                if (createdStr != null) {
+                                  final createdAt = DateTime.tryParse(createdStr.toString())?.toLocal();
+                                  if (createdAt != null && createdAt.isBefore(dataLimitePendentes)) {
+                                    continue; // Descarta porque é pendente fantasma antigo
+                                  }
+                                }
+
+                                if (!SyncService.idsFinalizadosLocalmente.contains(e['id']?.toString())) {
+                                  totalPendentes++;
+                                }
+                                continue;
+                              }
+
+                              // ── FEITOS e FALHAS: filtram pela data de finalização >= corte 04:00 ──
+                              // Usa data_conclusao (quando existir) ou updated_at como fallback
+                              final dataFinalStr = e['data_conclusao'] ?? e['updated_at'] ?? e['created_at'];
+                              if (dataFinalStr != null) {
+                                final dataFinal = DateTime.tryParse(dataFinalStr.toString())?.toLocal();
+                                if (dataFinal != null && dataFinal.isBefore(limiteReset)) {
+                                  continue; // Finalizado em diária anterior — ignora
                                 }
                               }
 
-                              final status = (e['status'] ?? '').toString().toLowerCase().trim();
-                              
-                              // Contagem
                               if (status == 'arquivado' || status == 'entregue' || status == 'concluido') {
                                 totalFeitas++;
                               } else if (status == 'falha' || status == 'nao_entregue') {
                                 totalFalhas++;
-                              } else if (status == 'pendente' || status == 'em_rota' || status.isEmpty) {
-                                totalPendentes++;
                               }
                             }
 

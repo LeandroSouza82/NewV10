@@ -36,11 +36,10 @@ class _HistoricoDiaViewState extends State<HistoricoDiaView> {
     final motoristaId = SupabaseService.currentMotoristaId ?? '';
     final agora = DateTime.now().toLocal();
 
-    // ── Calcula o limite inferior conforme o período ──────────────────────────
+    // ── Calcula o limite inferior conforme o período (sempre às 04:00 local) ──
     DateTime limiteInicio;
     switch (periodo) {
       case _Periodo.hoje:
-        // Diária: 04:00 de hoje (ou 04:00 de ontem se antes das 04:00)
         limiteInicio = DateTime(agora.year, agora.month, agora.day, 4, 0);
         if (agora.isBefore(limiteInicio)) {
           limiteInicio = limiteInicio.subtract(const Duration(days: 1));
@@ -51,14 +50,38 @@ class _HistoricoDiaViewState extends State<HistoricoDiaView> {
         limiteInicio = DateTime(agora.year, agora.month, 1, 0, 0);
     }
 
+    // Buscamos um recorte seguro do banco (ex: últimos 60 dias) para não travar o app
+    // e filtramos localmente para garantir as regras de status e fuso horário.
+    final dataCorteSegura = limiteInicio.subtract(const Duration(days: 30));
+
     final registros = await Supabase.instance.client
         .from('entregas')
         .select()
         .eq('motorista_id', motoristaId)
-        .gte('created_at', limiteInicio.toUtc().toIso8601String())
+        .gte('created_at', dataCorteSegura.toUtc().toIso8601String())
         .order('created_at', ascending: false);
 
-    return (registros as List).cast<Map<String, dynamic>>();
+    final lista = (registros as List).cast<Map<String, dynamic>>();
+
+    // ── Filtro de Histórico (Regras de Negócio) ──
+    return lista.where((e) {
+      final status = (e['status'] ?? '').toString().toLowerCase().trim();
+      
+      // Regra 1: Histórico NUNCA deve exibir pendentes ou em rota (eles estão na mochila/home)
+      if (status == 'pendente' || status == 'em_rota' || status.isEmpty) {
+        return false;
+      }
+
+      // Regra 2: Filtrar pelo período considerando o fuso horário local e o corte das 4h
+      final dataBaseStr = e['data_conclusao'] ?? e['updated_at'] ?? e['created_at'];
+      if (dataBaseStr == null) return false;
+
+      final dataLocal = DateTime.tryParse(dataBaseStr.toString())?.toLocal();
+      if (dataLocal == null) return false;
+
+      // Mantém apenas os itens cuja data de finalização seja >= ao limite da aba escolhida
+      return !dataLocal.isBefore(limiteInicio);
+    }).toList();
   }
 
   List<Map<String, dynamic>> _filtrar(List<Map<String, dynamic>> lista) {
