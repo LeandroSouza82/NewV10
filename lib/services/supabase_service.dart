@@ -183,7 +183,8 @@ class SupabaseService {
             .from('entregas')
             .select()
             .eq('motorista_id', currentMotoristaId!)
-            .or('status.eq.pendente,status.eq.em_rota');
+            .or('status.eq.pendente,status.eq.em_rota')
+            .order('ordem_logistica', ascending: true);
         
         final list = dados.map((linha) {
           return {
@@ -194,6 +195,7 @@ class SupabaseService {
             'aviso': linha['observacoes'] ?? linha['obs'] ?? '',
             'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
             'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
+            'ordem_logistica': linha['ordem_logistica'],
           };
         }).toList();
         
@@ -246,7 +248,7 @@ class SupabaseService {
           .eq('motorista_id', currentMotoristaId!)
           .map((dados) {
             // Filtro local adicional
-            return dados
+            final filtered = dados
                 .where((linha) => linha['status'] == 'pendente' || linha['status'] == 'em_rota')
                 .map((linha) {
               return {
@@ -257,8 +259,19 @@ class SupabaseService {
                 'aviso': linha['observacoes'] ?? linha['obs'] ?? '',
                 'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
                 'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
+                'ordem_logistica': linha['ordem_logistica'],
               };
             }).toList();
+            // Ordenação local por ordem_logistica (Realtime não suporta .order())
+            filtered.sort((a, b) {
+              final oa = a['ordem_logistica'];
+              final ob = b['ordem_logistica'];
+              if (oa == null && ob == null) return 0;
+              if (oa == null) return 1;
+              if (ob == null) return -1;
+              return (oa as int).compareTo(ob as int);
+            });
+            return filtered;
           })
           .listen(
             (dados) async {
