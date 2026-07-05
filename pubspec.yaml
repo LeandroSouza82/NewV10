@@ -41,7 +41,7 @@ dependencies:
   mask_text_input_formatter: ^2.9.0
   image_picker: ^1.2.2
   url_launcher: ^6.3.2
-  connectivity_plus: ^7.1.1
+  connectivity_plus: ^7.2.0
   path_provider: ^2.1.6
   share_plus: ^13.1.0
   intl: ^0.20.2
@@ -50,6 +50,8 @@ dependencies:
   wakelock_plus: ^1.6.1
   flutter_local_notifications: ^22.0.1
   http: ^1.4.0
+  torch_light: ^1.1.0
+  mobile_scanner: ^7.2.0
 
 dev_dependencies:
   flutter_test:

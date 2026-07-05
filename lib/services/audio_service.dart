@@ -1,47 +1,89 @@
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AudioService {
-  static final AudioPlayer _player = AudioPlayer();
-  static final AudioPlayer _playerFinal = AudioPlayer();
+  // Singleton
+  AudioService._privateConstructor();
+  static final AudioService instance = AudioService._privateConstructor();
 
-  
-  static bool _isInitialized = false;
+  final AudioPlayer _player = AudioPlayer();
+  final AudioPlayer _playerFinal = AudioPlayer();
+  bool _isInitialized = false;
 
-  static Future<void> _initContexts() async {
-    if (_isInitialized) return;
+  bool somGeralAtivo = true;
+  bool somNovaChamada = true;
+  bool somRotaFinalizada = true;
+  bool somRotaCompleta = true;
+  bool somAlertaFalha = true;
 
-    // Configuração dos contextos para os diferentes players
-    await _player.setAudioContext(AudioContext(
-      android: AudioContextAndroid(
-        audioMode: AndroidAudioMode.normal,
-        contentType: AndroidContentType.music,
-        usageType: AndroidUsageType.media,
-      )
-    ));
-    await _playerFinal.setAudioContext(AudioContext(
-      android: AudioContextAndroid(
-        audioMode: AndroidAudioMode.normal,
-        contentType: AndroidContentType.music,
-        usageType: AndroidUsageType.media,
-      )
-    ));
-
-
-    // Listeners para liberação de memória nativa assim que o som terminar
-    // Evita o uso do dispose() que mata o objeto Dart e fecha a Stream permanentemente.
-    _player.onPlayerComplete.listen((_) => _player.release());
-    _playerFinal.onPlayerComplete.listen((_) => _playerFinal.release());
-
-
-    _isInitialized = true;
+  Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      somGeralAtivo = prefs.getBool('somGeralAtivo') ?? true;
+      somNovaChamada = prefs.getBool('somNovaChamada') ?? true;
+      somRotaFinalizada = prefs.getBool('somRotaFinalizada') ?? true;
+      somRotaCompleta = prefs.getBool('somRotaCompleta') ?? true;
+      somAlertaFalha = prefs.getBool('somAlertaFalha') ?? true;
+      
+      if (!_isInitialized) {
+        await _player.setAudioContext(AudioContext(
+          android: AudioContextAndroid(
+            audioMode: AndroidAudioMode.normal,
+            contentType: AndroidContentType.music,
+            usageType: AndroidUsageType.media,
+          )
+        ));
+        await _playerFinal.setAudioContext(AudioContext(
+          android: AudioContextAndroid(
+            audioMode: AndroidAudioMode.normal,
+            contentType: AndroidContentType.music,
+            usageType: AndroidUsageType.media,
+          )
+        ));
+        _player.onPlayerComplete.listen((_) => _player.release());
+        _playerFinal.onPlayerComplete.listen((_) => _playerFinal.release());
+        _isInitialized = true;
+      }
+    } catch (_) {}
   }
 
-  static Future<void> playAudio(String fileName, {bool isFinal = false}) async {
+  Future<void> _salvarPreferencia(String key, bool value) async {
     try {
-      await _initContexts();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(key, value);
+    } catch (_) {}
+  }
+
+  Future<void> setSomGeralAtivo(bool ativo) async {
+    somGeralAtivo = ativo;
+    await _salvarPreferencia('somGeralAtivo', ativo);
+  }
+
+  Future<void> setSomNovaChamada(bool ativo) async {
+    somNovaChamada = ativo;
+    await _salvarPreferencia('somNovaChamada', ativo);
+  }
+
+  Future<void> setSomRotaFinalizada(bool ativo) async {
+    somRotaFinalizada = ativo;
+    await _salvarPreferencia('somRotaFinalizada', ativo);
+  }
+
+  Future<void> setSomRotaCompleta(bool ativo) async {
+    somRotaCompleta = ativo;
+    await _salvarPreferencia('somRotaCompleta', ativo);
+  }
+
+  Future<void> setSomAlertaFalha(bool ativo) async {
+    somAlertaFalha = ativo;
+    await _salvarPreferencia('somAlertaFalha', ativo);
+  }
+
+  Future<void> _tocarSom(String fileName, {bool isFinal = false}) async {
+    if (!somGeralAtivo) return;
+    
+    try {
       final player = isFinal ? _playerFinal : _player;
-      
       await player.stop();
       await player.setVolume(1.0);
       await player.play(
@@ -49,21 +91,42 @@ class AudioService {
         volume: 1.0, 
         mode: PlayerMode.lowLatency,
       );
-    } catch (e) {
-      debugPrint('Erro crítico ao reproduzir $fileName: $e');
+    } catch (_) {
+      // Captura silenciosa
     }
   }
 
-  static Future<void> playChama() async => await playAudio('chama.mp3');
-  static Future<void> playSucesso() async => await playAudio('sucesso.mp3');
-  static Future<void> playFalha() async => await playAudio('falha.mp3');
-  static Future<void> playFinal() async => await playAudio('toque_final.mp3', isFinal: true);
-  
+  Future<void> tocarNovaChamada() async {
+    if (somGeralAtivo && somNovaChamada) {
+      await _tocarSom('chama.mp3');
+    }
+  }
 
-  
+  Future<void> tocarRotaFinalizada() async {
+    if (somGeralAtivo && somRotaFinalizada) {
+      await _tocarSom('toque_final.mp3', isFinal: true);
+    }
+  }
+
+  Future<void> tocarRotaCompleta() async {
+    if (somGeralAtivo && somRotaCompleta) {
+      await _tocarSom('comemoracao.mp3');
+    }
+  }
+
+  Future<void> tocarAlertaFalha() async {
+    if (somGeralAtivo && somAlertaFalha) {
+      await _tocarSom('falha.mp3');
+    }
+  }
+
+  // --- Retrocompatibilidade com métodos estáticos antigos ---
+  static Future<void> playChama() async => await AudioService.instance.tocarNovaChamada();
+  static Future<void> playFinal() async => await AudioService.instance.tocarRotaFinalizada();
+  static Future<void> playSucesso() async => await AudioService.instance.tocarRotaFinalizada();
+  static Future<void> playFalha() async => await AudioService.instance.tocarAlertaFalha();
   static Future<void> stop() async {
-    await _player.stop();
-    await _playerFinal.stop();
-
+    await AudioService.instance._player.stop();
+    await AudioService.instance._playerFinal.stop();
   }
 }

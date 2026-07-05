@@ -5,6 +5,7 @@ import '../views/meu_desempenho_view.dart';
 import '../views/historico_dia_view.dart';
 import '../views/lista_ocorrencias_view.dart';
 import '../views/comprovantes/comprovantes_list_view.dart';
+import 'package:app_do_motorista/views/instrumentos/instrumentos_view.dart';
 import '../views/notificacoes/notificacoes_list_view.dart';
 import '../views/notificacoes/widgets/notification_icon_badge.dart';
 import '../views/veiculo/meu_veiculo_view.dart';
@@ -294,6 +295,17 @@ class AppDrawer extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => const MeuVeiculoView()),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.handyman_outlined, color: AppColors.textWhite),
+                      title: const Text('Instrumentos', style: TextStyle(color: AppColors.textWhite)),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const InstrumentosView()),
                         );
                       },
                     ),
