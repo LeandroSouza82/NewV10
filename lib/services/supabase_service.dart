@@ -341,6 +341,9 @@ class SupabaseService {
           );
     }
 
+    // Estado local para evitar Flood de logs
+    String? ultimoEstadoLog;
+
     // Configura o timer de fallback de 5 segundos
     fallbackTimer = Timer(const Duration(seconds: 5), () {
       if (!hasReceivedData) {
@@ -353,10 +356,18 @@ class SupabaseService {
     pollingTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
       final state = client.realtime.connectionState;
       final isConnected = client.realtime.isConnected;
-      print('⚡ SOCKET MONITOR: Estado da conexão = $state (conectado = $isConnected)');
+      
+      final currentStateLog = '$state|$isConnected';
+      if (ultimoEstadoLog != currentStateLog) {
+        ultimoEstadoLog = currentStateLog;
+        print('⚡ SOCKET MONITOR: Estado da conexão = $state (conectado = $isConnected)');
+      }
       
       if (!isConnected) {
-        print('⚡ SOCKET MONITOR: Socket desconectado. Atualizando via Polling.');
+        if (ultimoEstadoLog != 'disconnected_fetch') {
+          print('⚡ SOCKET MONITOR: Socket desconectado. Atualizando via Polling.');
+          ultimoEstadoLog = 'disconnected_fetch';
+        }
         fetchViaRest();
       }
     });
@@ -366,8 +377,11 @@ class SupabaseService {
     controller.onCancel = () {
       print('⚡ SYSTEM: Cancelando inscrições e timers da stream de entregas.');
       realtimeSubscription?.cancel();
+      realtimeSubscription = null;
       fallbackTimer?.cancel();
+      fallbackTimer = null;
       pollingTimer?.cancel();
+      pollingTimer = null;
       controller.close();
     };
 

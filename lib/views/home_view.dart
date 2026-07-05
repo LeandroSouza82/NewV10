@@ -58,12 +58,18 @@ class _HomeViewState extends State<HomeView> {
     
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
       if (mounted) {
-        setState(() {
-          hasInternet = results.any((r) => r != ConnectivityResult.none);
-        });
-
-        if (hasInternet) {
+        final currentlyHasInternet = results.any((r) => r != ConnectivityResult.none);
+        
+        // Só recria a Stream se a internet REALMENTE estava offline e ACABOU de voltar
+        if (currentlyHasInternet && !hasInternet) {
+          setState(() {
+            hasInternet = currentlyHasInternet;
+          });
           _recarregarDadosAoVoltarOnline();
+        } else if (hasInternet != currentlyHasInternet) {
+          setState(() {
+            hasInternet = currentlyHasInternet;
+          });
         }
       }
     });
