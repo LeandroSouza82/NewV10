@@ -5,6 +5,8 @@ import '../views/meu_desempenho_view.dart';
 import '../views/historico_dia_view.dart';
 import '../views/lista_ocorrencias_view.dart';
 import '../views/comprovantes/comprovantes_list_view.dart';
+import '../views/notificacoes/notificacoes_list_view.dart';
+import '../views/notificacoes/widgets/notification_icon_badge.dart';
 import '../services/sync_service.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -297,10 +299,17 @@ class AppDrawer extends StatelessWidget {
 
                     // Seção Secundária
                     ListTile(
-                      leading: const Icon(Icons.notifications_none, color: AppColors.textWhite),
+                      leading: const NotificationIconBadge(
+                        child: Icon(Icons.notifications_none, color: AppColors.textWhite),
+                      ),
                       title: const Text('Notificações', style: TextStyle(color: AppColors.textWhite)),
-                      trailing: _buildEmBreveBadge(),
-                      onTap: () => _mostrarAvisoDesenvolvimento(context),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const NotificacoesListView()),
+                        );
+                      },
                     ),
                     ListTile(
                       leading: const Icon(Icons.directions_car_filled_outlined, color: AppColors.textWhite),
