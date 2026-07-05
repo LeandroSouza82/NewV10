@@ -22,20 +22,16 @@ class _SelecaoEntregaViewState extends State<SelecaoEntregaView> {
 
   Future<List<Map<String, dynamic>>> _carregarEntregasAbertas() async {
     final motoristaId = SupabaseService.currentMotoristaId ?? '';
-    final agora = DateTime.now().toLocal();
 
-    // Diária: 04:00 de hoje (ou 04:00 de ontem se antes das 04:00)
-    var limiteInicio = DateTime(agora.year, agora.month, agora.day, 4, 0);
-    if (agora.isBefore(limiteInicio)) {
-      limiteInicio = limiteInicio.subtract(const Duration(days: 1));
-    }
-
+    // Busca TODAS as entregas ativas do motorista, independente da data de criação.
+    // Inclui status 'pendente', 'em_rota' e null (sem status definido).
+    // O filtro de created_at foi removido: entregas de dias anteriores que
+    // ainda estão na mochila (pendentes/em_rota) devem aparecer normalmente.
     final registros = await Supabase.instance.client
         .from('entregas')
         .select()
         .eq('motorista_id', motoristaId)
-        .gte('created_at', limiteInicio.toUtc().toIso8601String())
-        .or('status.eq.em_rota,status.is.null') // Filtra ativas ou sem status definido
+        .or('status.eq.pendente,status.eq.em_rota,status.is.null')
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(registros);
@@ -107,7 +103,7 @@ class _SelecaoEntregaViewState extends State<SelecaoEntregaView> {
                     Icon(Icons.check_circle_outline, size: 64, color: AppColors.textGrey),
                     SizedBox(height: 16),
                     Text(
-                      'Nenhuma entrega pendente hoje.',
+                      'Nenhuma entrega ativa no momento.',
                       style: TextStyle(color: AppColors.textWhite, fontSize: 18),
                       textAlign: TextAlign.center,
                     ),
