@@ -48,6 +48,9 @@ class SupabaseService {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('motorista_id', response['id']);
+    if (response['nome'] != null) {
+      await prefs.setString('nome_motorista', response['nome']);
+    }
     currentMotoristaId = response['id'];
   }
 
@@ -391,7 +394,12 @@ class SupabaseService {
   // Obtém dados do motorista atual
   static Future<Map<String, dynamic>?> getMotorista(String id) async {
     try {
-      return await client.from('motoristas').select().eq('id', id).maybeSingle();
+      final motorista = await client.from('motoristas').select().eq('id', id).maybeSingle();
+      if (motorista != null && motorista['nome'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('nome_motorista', motorista['nome']);
+      }
+      return motorista;
     } catch (e) {
       print('Erro ao obter motorista: $e');
       return null;
