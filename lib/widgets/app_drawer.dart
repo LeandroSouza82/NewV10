@@ -4,6 +4,7 @@ import '../core/app_colors.dart';
 import '../views/meu_desempenho_view.dart';
 import '../views/historico_dia_view.dart';
 import '../views/lista_ocorrencias_view.dart';
+import '../views/comprovantes/comprovantes_list_view.dart';
 import '../services/sync_service.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -283,8 +284,13 @@ class AppDrawer extends StatelessWidget {
                     ListTile(
                       leading: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.textWhite),
                       title: const Text('Meus Comprovantes', style: TextStyle(color: AppColors.textWhite)),
-                      trailing: _buildEmBreveBadge(),
-                      onTap: () => _mostrarAvisoDesenvolvimento(context),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ComprovantesListView()),
+                        );
+                      },
                     ),
 
                     Divider(color: AppColors.textGrey.withValues(alpha: 0.2), height: 32),
