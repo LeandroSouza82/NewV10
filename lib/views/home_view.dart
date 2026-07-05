@@ -12,6 +12,7 @@ import '../widgets/draggable_route_list.dart';
 import '../services/supabase_service.dart';
 import '../services/sync_service.dart';
 import '../services/location_service.dart';
+import '../core/utils/location_utils.dart';
 
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -57,12 +58,18 @@ class _HomeViewState extends State<HomeView> {
     
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
       if (mounted) {
-        setState(() {
-          hasInternet = results.any((r) => r != ConnectivityResult.none);
-        });
-
-        if (hasInternet) {
+        final currentlyHasInternet = results.any((r) => r != ConnectivityResult.none);
+        
+        // Só recria a Stream se a internet REALMENTE estava offline e ACABOU de voltar
+        if (currentlyHasInternet && !hasInternet) {
+          setState(() {
+            hasInternet = currentlyHasInternet;
+          });
           _recarregarDadosAoVoltarOnline();
+        } else if (hasInternet != currentlyHasInternet) {
+          setState(() {
+            hasInternet = currentlyHasInternet;
+          });
         }
       }
     });
@@ -158,6 +165,7 @@ class _HomeViewState extends State<HomeView> {
         if (_isOnline) {
           LocationService.iniciarRastreamento(id);
           SupabaseService.iniciarEscutaNovasEntregas(id);
+          DistanciaService.instance.iniciarEscutaGps();
         }
       }
     }
@@ -183,9 +191,11 @@ class _HomeViewState extends State<HomeView> {
         if (_isOnline) {
           LocationService.iniciarRastreamento(id);
           SupabaseService.iniciarEscutaNovasEntregas(id);
+          DistanciaService.instance.iniciarEscutaGps();
         } else {
           LocationService.pararRastreamento();
           SupabaseService.pararEscutaNovasEntregas();
+          DistanciaService.instance.pararEscutaGps();
         }
 
         if (mounted) {
@@ -292,6 +302,7 @@ class _HomeViewState extends State<HomeView> {
   Future<void> _fazerLogout() async {
     LocationService.pararRastreamento();
     SupabaseService.pararEscutaNovasEntregas();
+    DistanciaService.instance.resetar();
     
     try {
       await SupabaseService.logout().timeout(const Duration(seconds: 2));
@@ -315,6 +326,7 @@ class _HomeViewState extends State<HomeView> {
     _connectivitySubscription?.cancel();
     LocationService.pararRastreamento();
     SupabaseService.pararEscutaNovasEntregas();
+    DistanciaService.instance.pararEscutaGps();
     super.dispose();
   }
 

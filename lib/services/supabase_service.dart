@@ -179,11 +179,15 @@ class SupabaseService {
     Future<void> fetchViaRest() async {
       print('⚡ FALLBACK: Buscando entregas via REST...');
       try {
+        final dataLimite = DateTime.now().toUtc().subtract(const Duration(days: 7)).toIso8601String();
+
         final dados = await client
             .from('entregas')
             .select()
             .eq('motorista_id', currentMotoristaId!)
-            .or('status.eq.pendente,status.eq.em_rota');
+            .gte('created_at', dataLimite)
+            .or('status.eq.pendente,status.eq.em_rota')
+            .order('ordem_logistica', ascending: true);
         
         final list = dados.map((linha) {
           return {
@@ -194,6 +198,7 @@ class SupabaseService {
             'aviso': linha['observacoes'] ?? linha['obs'] ?? '',
             'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
             'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
+            'ordem_logistica': linha['ordem_logistica'],
           };
         }).toList();
         
@@ -240,14 +245,27 @@ class SupabaseService {
     // Inicia a escuta do Stream do Realtime
     void startRealtime() {
       print('⚡ REALTIME: Iniciando escuta da stream de entregas...');
+      final dataLimiteDart = DateTime.now().subtract(const Duration(days: 7));
       realtimeSubscription = client
           .from('entregas')
           .stream(primaryKey: ['id'])
           .eq('motorista_id', currentMotoristaId!)
           .map((dados) {
             // Filtro local adicional
-            return dados
-                .where((linha) => linha['status'] == 'pendente' || linha['status'] == 'em_rota')
+            final filtered = dados
+                .where((linha) {
+                  final statusOk = (linha['status'] == 'pendente' || linha['status'] == 'em_rota');
+                  if (!statusOk) return false;
+                  
+                  final createdAtStr = linha['created_at'];
+                  if (createdAtStr != null) {
+                    final createdAtDate = DateTime.tryParse(createdAtStr.toString())?.toLocal();
+                    if (createdAtDate != null && createdAtDate.isBefore(dataLimiteDart)) {
+                      return false; // Ignora pendentes antigos demais
+                    }
+                  }
+                  return true;
+                })
                 .map((linha) {
               return {
                 'id': linha['id'].toString(),
@@ -257,8 +275,19 @@ class SupabaseService {
                 'aviso': linha['observacoes'] ?? linha['obs'] ?? '',
                 'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
                 'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
+                'ordem_logistica': linha['ordem_logistica'],
               };
             }).toList();
+            // Ordenação local por ordem_logistica (Realtime não suporta .order())
+            filtered.sort((a, b) {
+              final oa = a['ordem_logistica'];
+              final ob = b['ordem_logistica'];
+              if (oa == null && ob == null) return 0;
+              if (oa == null) return 1;
+              if (ob == null) return -1;
+              return (oa as int).compareTo(ob as int);
+            });
+            return filtered;
           })
           .listen(
             (dados) async {
@@ -312,6 +341,9 @@ class SupabaseService {
           );
     }
 
+    // Estado local para evitar Flood de logs
+    String? ultimoEstadoLog;
+
     // Configura o timer de fallback de 5 segundos
     fallbackTimer = Timer(const Duration(seconds: 5), () {
       if (!hasReceivedData) {
@@ -324,10 +356,18 @@ class SupabaseService {
     pollingTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
       final state = client.realtime.connectionState;
       final isConnected = client.realtime.isConnected;
-      print('⚡ SOCKET MONITOR: Estado da conexão = $state (conectado = $isConnected)');
+      
+      final currentStateLog = '$state|$isConnected';
+      if (ultimoEstadoLog != currentStateLog) {
+        ultimoEstadoLog = currentStateLog;
+        print('⚡ SOCKET MONITOR: Estado da conexão = $state (conectado = $isConnected)');
+      }
       
       if (!isConnected) {
-        print('⚡ SOCKET MONITOR: Socket desconectado. Atualizando via Polling.');
+        if (ultimoEstadoLog != 'disconnected_fetch') {
+          print('⚡ SOCKET MONITOR: Socket desconectado. Atualizando via Polling.');
+          ultimoEstadoLog = 'disconnected_fetch';
+        }
         fetchViaRest();
       }
     });
@@ -337,8 +377,11 @@ class SupabaseService {
     controller.onCancel = () {
       print('⚡ SYSTEM: Cancelando inscrições e timers da stream de entregas.');
       realtimeSubscription?.cancel();
+      realtimeSubscription = null;
       fallbackTimer?.cancel();
+      fallbackTimer = null;
       pollingTimer?.cancel();
+      pollingTimer = null;
       controller.close();
     };
 

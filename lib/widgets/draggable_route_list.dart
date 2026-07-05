@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_colors.dart';
 import '../views/components/modal_baixa_entrega.dart';
 import '../views/components/modal_falha_entrega.dart';
-import 'package:geolocator/geolocator.dart';
 import '../core/utils/location_utils.dart';
 
 class DraggableRouteList extends StatefulWidget {
@@ -18,33 +17,25 @@ class DraggableRouteList extends StatefulWidget {
 
 class _DraggableRouteListState extends State<DraggableRouteList> {
   late List<Map<String, dynamic>> rotas;
-  Position? _posAtual;
+  Map<String, String> _distanciaTextos = {};
 
   @override
   void initState() {
     super.initState();
     rotas = List.from(widget.rotasIniciais);
-    _obterPosicaoAtual();
+
+    // Alimenta o serviço com as entregas atuais
+    DistanciaService.instance.atualizarEntregas(rotas);
+
+    // Escuta atualizações de distância vindas do GPS (passivamente)
+    DistanciaService.instance.distanciasNotifier.addListener(_onDistanciasAtualizadas);
   }
 
-  Future<void> _obterPosicaoAtual() async {
-    try {
-      final pos = await Geolocator.getLastKnownPosition();
-      if (pos != null && mounted) {
-        setState(() {
-          _posAtual = pos;
-        });
-      }
-      final currentPos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-      if (mounted) {
-        setState(() {
-          _posAtual = currentPos;
-        });
-      }
-    } catch (e) {
-      // Ignora erro
+  void _onDistanciasAtualizadas() {
+    if (mounted) {
+      setState(() {
+        _distanciaTextos = DistanciaService.instance.distanciasNotifier.value;
+      });
     }
   }
 
@@ -57,7 +48,15 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
       setState(() {
         rotas = List.from(widget.rotasIniciais);
       });
+      // Atualiza o serviço com a nova lista de entregas
+      DistanciaService.instance.atualizarEntregas(rotas);
     }
+  }
+
+  @override
+  void dispose() {
+    DistanciaService.instance.distanciasNotifier.removeListener(_onDistanciasAtualizadas);
+    super.dispose();
   }
 
   void _reorder(int oldIndex, int newIndex) {
@@ -210,35 +209,33 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                       ),
                       child: Builder(
                         builder: (context) {
-                          double? latDestino = double.tryParse(rota['lat']?.toString() ?? '');
-                          double? lngDestino = double.tryParse(rota['lng']?.toString() ?? '');
+                          final id = rota['id']?.toString() ?? '';
+                          final texto = _distanciaTextos[id];
 
-                          if (latDestino == null || lngDestino == null) {
-                            return const Row(
+                          // Se o serviço ainda não calculou, mostra "Sem GPS" ou "..."
+                          if (texto == null || texto == 'Sem GPS') {
+                            final bool temGps = rota['lat'] != null && rota['lng'] != null;
+                            return Row(
                               children: [
-                                Icon(Icons.location_off_rounded, color: AppColors.borderRecolha, size: 14),
-                                SizedBox(width: 4),
-                                Text('Sem GPS', style: TextStyle(color: AppColors.borderRecolha, fontSize: 12, fontWeight: FontWeight.bold)),
+                                Icon(
+                                  temGps ? Icons.location_on_rounded : Icons.location_off_rounded,
+                                  color: AppColors.borderRecolha,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  temGps ? '...' : 'Sem GPS',
+                                  style: const TextStyle(color: AppColors.borderRecolha, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
                               ],
                             );
                           }
-
-                          // Se a localização do celular falhar, usa o centro de Palhoça como base para não quebrar a UI
-                          final double motoristaLat = _posAtual?.latitude ?? -27.6450;
-                          final double motoristaLng = _posAtual?.longitude ?? -48.6730;
-
-                          final dist = LocationUtils.obterDistanciaLogistica(
-                            latAtual: motoristaLat,
-                            lngAtual: motoristaLng,
-                            latDestino: latDestino,
-                            lngDestino: lngDestino,
-                          );
 
                           return Row(
                             children: [
                               const Icon(Icons.location_on_rounded, color: AppColors.borderRecolha, size: 14),
                               const SizedBox(width: 4),
-                              Text('${dist.toStringAsFixed(1)} km', style: const TextStyle(color: AppColors.borderRecolha, fontSize: 12, fontWeight: FontWeight.bold)),
+                              Text(texto, style: const TextStyle(color: AppColors.borderRecolha, fontSize: 12, fontWeight: FontWeight.bold)),
                             ],
                           );
                         }

@@ -49,6 +49,7 @@ dependencies:
   audioplayers: ^6.7.1
   wakelock_plus: ^1.6.1
   flutter_local_notifications: ^22.0.1
+  http: ^1.4.0
 
 dev_dependencies:
   flutter_test:
