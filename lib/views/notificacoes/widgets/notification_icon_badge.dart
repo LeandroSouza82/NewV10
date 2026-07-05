@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/app_colors.dart';
 import '../../../services/supabase_service.dart';
 
 class NotificationIconBadge extends StatefulWidget {

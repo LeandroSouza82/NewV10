@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../views/notificacoes/widgets/notification_icon_badge.dart';
+import 'vehicle_alert_badge.dart';
 
 class CustomAppBar extends StatelessWidget {
   final String driverName;
@@ -49,8 +50,10 @@ class CustomAppBar extends StatelessWidget {
                         },
                         child: const Padding(
                           padding: EdgeInsets.all(8.0),
-                          child: NotificationIconBadge(
-                            child: Icon(Icons.menu_rounded, color: AppColors.textWhite, size: 28),
+                          child: VehicleAlertBadge(
+                            child: NotificationIconBadge(
+                              child: Icon(Icons.menu_rounded, color: AppColors.textWhite, size: 28),
+                            ),
                           ),
                         ),
                       ),

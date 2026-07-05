@@ -7,7 +7,9 @@ import '../views/lista_ocorrencias_view.dart';
 import '../views/comprovantes/comprovantes_list_view.dart';
 import '../views/notificacoes/notificacoes_list_view.dart';
 import '../views/notificacoes/widgets/notification_icon_badge.dart';
+import '../views/veiculo/meu_veiculo_view.dart';
 import '../services/sync_service.dart';
+import 'vehicle_alert_badge.dart';
 
 class AppDrawer extends StatelessWidget {
   final Map<String, dynamic>? motorista;
@@ -28,34 +30,6 @@ class AppDrawer extends StatelessWidget {
     required this.onTapNavegador,
     required this.onTapSair,
   });
-
-  void _mostrarAvisoDesenvolvimento(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Funcionalidade em desenvolvimento.'),
-        backgroundColor: Colors.grey,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Widget _buildEmBreveBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Text(
-        'Em breve',
-        style: TextStyle(
-          color: Colors.orange,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -314,8 +288,14 @@ class AppDrawer extends StatelessWidget {
                     ListTile(
                       leading: const Icon(Icons.directions_car_filled_outlined, color: AppColors.textWhite),
                       title: const Text('Meu Veículo', style: TextStyle(color: AppColors.textWhite)),
-                      trailing: _buildEmBreveBadge(),
-                      onTap: () => _mostrarAvisoDesenvolvimento(context),
+                      trailing: const VehicleDrawerBadge(),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const MeuVeiculoView()),
+                        );
+                      },
                     ),
                     ListTile(
                       leading: const Icon(Icons.map, color: AppColors.textWhite),
