@@ -108,6 +108,12 @@ class AudioService {
     }
   }
 
+  Future<void> tocarSucessoIndividual() async {
+    if (somGeralAtivo && somRotaFinalizada) {
+      await _tocarSom('sucesso.mp3');
+    }
+  }
+
   Future<void> tocarRotaCompleta() async {
     if (somGeralAtivo && somRotaCompleta) {
       await _tocarSom('comemoracao.mp3');
@@ -123,7 +129,7 @@ class AudioService {
   // --- Retrocompatibilidade com métodos estáticos antigos ---
   static Future<void> playChama() async => await AudioService.instance.tocarNovaChamada();
   static Future<void> playFinal() async => await AudioService.instance.tocarRotaFinalizada();
-  static Future<void> playSucesso() async => await AudioService.instance.tocarRotaFinalizada();
+  static Future<void> playSucesso() async => await AudioService.instance.tocarSucessoIndividual();
   static Future<void> playFalha() async => await AudioService.instance.tocarAlertaFalha();
   static Future<void> stop() async {
     await AudioService.instance._player.stop();
