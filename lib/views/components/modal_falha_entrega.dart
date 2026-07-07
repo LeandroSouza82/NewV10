@@ -411,96 +411,35 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
   }
 
   Widget _buildMotivosList() {
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 196),
-      child: Stack(
-        children: [
-          ListView.separated(
-            shrinkWrap: true,
-            itemCount: _motivos.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final m = _motivos[index];
-              final selecionado = _motivoSelecionado == m.id;
-              
-              return GestureDetector(
-                onTap: () => setState(() => _motivoSelecionado = m.id),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: selecionado ? const Color(0xFFE53E3E).withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.03),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: selecionado ? const Color(0xFFE53E3E).withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.08),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: selecionado ? const Color(0xFFE53E3E).withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        child: Icon(
-                          m.icone,
-                          color: selecionado ? const Color(0xFFFC8181) : Colors.white.withValues(alpha: 0.5),
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          m.label,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: selecionado ? FontWeight.w700 : FontWeight.w500,
-                            color: selecionado ? const Color(0xFFFC8181) : Colors.white.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 18,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: selecionado ? const Color(0xFFE53E3E) : Colors.transparent,
-                          border: Border.all(
-                            color: selecionado ? Colors.transparent : Colors.white.withValues(alpha: 0.15),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: selecionado ? const Icon(Icons.check, color: Colors.white, size: 12) : null,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 24,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [Color(0xFF1a2740), Colors.transparent],
-                ),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-              ),
-            ),
-          ),
-        ],
+    return DropdownButtonFormField<String>(
+      decoration: const InputDecoration(
+        labelText: 'Motivo da falha',
+        labelStyle: TextStyle(color: Colors.white70),
+        border: OutlineInputBorder(),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.white24),
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
+      dropdownColor: const Color(0xFF1a2740),
+      style: const TextStyle(color: Colors.white, fontSize: 14),
+      value: _motivoSelecionado,
+      isExpanded: true,
+      items: [
+        'Cliente Ausente', 
+        'Endereço Não Encontrado', 
+        'Recusado pelo Destinatário', 
+        'Estabelecimento Fechado',
+        'Ata não registrada'
+      ].map((motivo) => DropdownMenuItem(
+        value: motivo,
+        child: Text(motivo, style: const TextStyle(fontSize: 14)),
+      )).toList(),
+      onChanged: (valor) {
+        setState(() {
+          _motivoSelecionado = valor;
+        });
+      },
     );
   }
 
