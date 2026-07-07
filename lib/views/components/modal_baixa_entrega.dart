@@ -148,9 +148,12 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
 
     final isColeta = widget.tipo.toLowerCase() == 'coleta' ||
         widget.tipo.toLowerCase() == 'recolha';
-    final displayTipo = isColeta ? 'COLETA' : widget.tipo.toUpperCase();
 
-    return '------------- *$displayTipo* -------------\n'
+    final String tipoRaw = widget.tipo.isNotEmpty ? widget.tipo : (widget.rota['tipoServico']?.toString() ?? 'ENTREGA');
+    final tipoServicoStr = isColeta ? 'COLETA' : tipoRaw.toUpperCase();
+    final cabecalho = '------------- *$tipoServicoStr* -------------\n\n';
+
+    return '$cabecalho'
         '*Status:* ✅ Sucesso\n'
         '*${isColeta ? 'Entregue por' : 'Recebido por'}:* $recebedorFinal\n'
         '*Cliente:* ${widget.clienteNome}\n'

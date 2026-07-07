@@ -107,7 +107,12 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
         ? 'Nenhuma' 
         : _descricaoController.text.trim();
 
-    return '*Status:* ❌ Falha\n'
+    final String tipoRaw = widget.tipo.isNotEmpty ? widget.tipo : (widget.rota['tipoServico']?.toString() ?? 'ENTREGA');
+    final tipoServicoStr = tipoRaw.toUpperCase();
+    final cabecalho = '------------- *$tipoServicoStr* -------------\n\n';
+
+    return '$cabecalho'
+        '*Status:* ❌ Falha\n'
         '*Motivo:* ${_motivoSelecionado ?? 'Não informado'}\n'
         '*Obs:* $textoObs\n'
         '*Cliente:* ${widget.clienteNome}\n'
