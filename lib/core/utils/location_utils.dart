@@ -127,6 +127,18 @@ class DistanciaService {
     distanciasNotifier.value = {};
   }
 
+  /// Força o recalculo imediato ignorando as travas de raio e mutex (usado ao finalizar entregas).
+  void forcarRecalculoImediato() {
+    _ultimoLat = null; // Ignora o raio de 500m
+    _ultimoLng = null;
+    _isFetching = false; // Quebra o mutex se travado
+    if (_motoristaLat == null || _motoristaLng == null) {
+      _obterPosicaoInicial();
+    } else {
+      _recalcularDistancias();
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // LÓGICA INTERNA (nunca chamada pela UI)
   // ═══════════════════════════════════════════════════════════════════
@@ -140,6 +152,25 @@ class DistanciaService {
         _recalcularDistancias();
       }
     } catch (_) {}
+  }
+
+  /// Calcula assincronamente a distância OSRM da posição atual até o destino
+  Future<double> calcularDistanciaAte(double latDest, double lngDest) async {
+    double? latO = _motoristaLat;
+    double? lngO = _motoristaLng;
+    if (latO == null || lngO == null) {
+      try {
+        final pos = await Geolocator.getLastKnownPosition();
+        if (pos != null) {
+          latO = pos.latitude;
+          lngO = pos.longitude;
+        }
+      } catch (_) {}
+    }
+    if (latO == null || lngO == null) return 0.0;
+    
+    final resultado = await _obterDistanciaOsrm(latO, lngO, latDest, lngDest);
+    return resultado.km;
   }
 
   /// Decide se chama OSRM ou usa cache/subtração local.
@@ -202,6 +233,9 @@ class DistanciaService {
         }
 
         final resultado = await _obterDistanciaOsrm(lat, lng, latDest, lngDest);
+        
+        // Atualiza a propriedade do objeto real para que a soma no Supabase_service funcione
+        entrega['distancia'] = resultado.km;
 
         if (resultado.fromOsrm) {
           // Valor real de rota: exibe sem prefixo
@@ -262,10 +296,12 @@ class DistanciaService {
         // Subtrai o deslocamento local da distância OSRM cacheada
         final deslocadoKm = _haversineMetros(_ultimoLat!, _ultimoLng!, lat, lng) / 1000.0;
         final distAjustada = (distCache - deslocadoKm).clamp(0.1, double.infinity);
+        entrega['distancia'] = distAjustada;
         novasDistancias[id] = '${distAjustada.toStringAsFixed(1)} km';
       } else {
         // Sem cache OSRM → Haversine × 1.45 como fallback
         final distFallback = _haversineKm(lat, lng, latDest, lngDest) * 1.45;
+        entrega['distancia'] = distFallback;
         novasDistancias[id] = '${distFallback.toStringAsFixed(1)} km';
       }
     }
@@ -308,14 +344,17 @@ class DistanciaService {
               Geolocator.distanceBetween(_ultimoLat!, _ultimoLng!, lat, lng) /
               1000.0;
           final distAjustada = (distCache - deslocadoKm).clamp(0.1, double.infinity);
+          entrega['distancia'] = distAjustada;
           fallbackMap[id] = '${distAjustada.toStringAsFixed(1)} km';
         } else {
+          entrega['distancia'] = distCache;
           fallbackMap[id] = '${distCache.toStringAsFixed(1)} km';
         }
       } else {
         // Linha reta geodésica (WGS-84) × 1.45 como estimativa de rota
         final distMetros = Geolocator.distanceBetween(lat, lng, latDest, lngDest);
         final distEstimada = (distMetros / 1000.0) * 1.45;
+        entrega['distancia'] = distEstimada;
         fallbackMap[id] = '~${distEstimada.toStringAsFixed(1)} km';
       }
     }

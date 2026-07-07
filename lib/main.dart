@@ -11,6 +11,14 @@ import 'services/sync_service.dart';
 import 'services/notification_service.dart';
 import 'services/presence_service.dart';
 
+import 'main_overlay.dart';
+
+@pragma('vm:entry-point')
+void overlayMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const OverlayApp());
+}
+
 // Mantenha suas credenciais finais reais aqui
 const String supabaseUrl = 'https://uqxoadxqcwidxqsfayem.supabase.co';
 const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxeG9hZHhxY3dpZHhxc2ZheWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0NDUxODksImV4cCI6MjA4NDAyMTE4OX0.q9_RqSx4YfJxlblPS9fwrocx3HDH91ff1zJvPbVGI8w';
@@ -52,12 +60,15 @@ void main() async {
   runApp(const AppDoMotorista());
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class AppDoMotorista extends StatelessWidget {
   const AppDoMotorista({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'App do Motorista',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

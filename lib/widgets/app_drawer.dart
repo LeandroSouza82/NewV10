@@ -7,6 +7,7 @@ import '../views/lista_ocorrencias_view.dart';
 import '../views/comprovantes/comprovantes_list_view.dart';
 import 'package:app_do_motorista/views/instrumentos/instrumentos_view.dart';
 import '../views/notificacoes/notificacoes_list_view.dart';
+import '../views/chamadas/chamadas_view.dart';
 import '../views/notificacoes/widgets/notification_icon_badge.dart';
 import '../views/veiculo/meu_veiculo_view.dart';
 import '../services/sync_service.dart';
@@ -283,6 +284,17 @@ class AppDrawer extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => const NotificacoesListView()),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.call_split_outlined, color: AppColors.textWhite),
+                      title: const Text('Chamadas e Rotas', style: TextStyle(color: AppColors.textWhite)),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ChamadasView()),
                         );
                       },
                     ),

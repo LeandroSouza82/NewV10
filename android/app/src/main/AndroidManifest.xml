@@ -41,12 +41,15 @@
             </intent-filter>
         </activity>
 
-        <!-- Serviço de Overlay Nativo V10 (Bottom Sheet sobre outros apps) -->
         <service
-            android:name=".V10FloatingService"
-            android:exported="false" />
-
-
+            android:name=".V10OverlayService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="overlay_window" />
+        </service>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

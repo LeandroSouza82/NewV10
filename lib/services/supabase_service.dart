@@ -1,16 +1,21 @@
 // ignore_for_file: avoid_print
 
 import 'dart:async';
-
+import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'audio_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/widgets.dart';
-
+import 'package:flutter/material.dart';
+import '../main.dart';
+import '../models/chamada_model.dart';
+import '../views/chamadas/widgets/chamada_card.dart';
 import 'package:app_do_motorista/services/notification_service.dart';
-import 'package:app_do_motorista/services/v10_overlay_bridge.dart';
+import '../core/utils/location_utils.dart';
 class SupabaseService {
   static final SupabaseClient client = Supabase.instance.client;
   
@@ -140,8 +145,110 @@ class SupabaseService {
                                  lifecycleState == AppLifecycleState.hidden;
             
             if (isBackground) {
-              print('✅ Rota recebida em background. Disparando overlay nativo...');
-              await V10OverlayBridge.abrirPainelNovaRota(newRecord);
+              print('✅ Rota recebida em background. Exibindo notificacao local e disparando Overlay nativo...');
+              await NotificationService.showRotaRecebida();
+              
+              try {
+                const MethodChannel mainChannel = MethodChannel('com.v10.delivery/main_overlay');
+                final bool temPermissao = await mainChannel.invokeMethod('checkOverlayPermission');
+                
+                if (!temPermissao) {
+                  await mainChannel.invokeMethod('requestOverlayPermission');
+                  print('⚠️ Solicitando permissão de overlay ao usuário...');
+                } else {
+                  final mapToEncode = Map<String, dynamic>.from(newRecord);
+                  
+                  if (mapToEncode['lat'] != null && mapToEncode['lng'] != null) {
+                    try {
+                      final pos = await Geolocator.getLastKnownPosition();
+                      if (pos != null) {
+                        final lat = double.tryParse(mapToEncode['lat'].toString()) ?? 0.0;
+                        final lng = double.tryParse(mapToEncode['lng'].toString()) ?? 0.0;
+                        if (lat != 0.0 && lng != 0.0) {
+                          final url = Uri.parse('http://router.project-osrm.org/route/v1/driving/${pos.longitude},${pos.latitude};$lng,$lat?overview=false');
+                          final res = await http.get(url).timeout(const Duration(seconds: 3));
+                          if (res.statusCode == 200) {
+                            final dataOsrm = jsonDecode(res.body);
+                            final kmOsrm = (dataOsrm['routes'][0]['distance'] as num) / 1000.0;
+                            mapToEncode['distancia'] = kmOsrm;
+                            print('✅ OSRM: Distância real confirmada para o Overlay: $kmOsrm km');
+                          }
+                        }
+                      }
+                    } catch (e) {
+                      print('❌ Erro no cálculo OSRM para o Overlay: $e');
+                    }
+                  }
+
+                  print('📦 PAYLOAD OVERLAY: KM preparado = ${mapToEncode['distancia']}');
+                  await _dispararOverlaySeguro(mapToEncode);
+                }
+              } catch (e) {
+                print('❌ Erro ao disparar Overlay Nativo: $e');
+              }
+            } else {
+              print('✅ Exibindo ChamadaCard popup no Foreground...');
+              final contexto = navigatorKey.currentContext;
+              if (contexto != null) {
+                final id = newRecord['id']?.toString() ?? '';
+                final String tipoOriginal = newRecord['tipo']?.toString().toUpperCase() ?? 'ENTREGA';
+                final String tipoTag = (tipoOriginal.contains('COLETA') || tipoOriginal.contains('RECOLHA')) 
+                    ? 'COLETA' : (tipoOriginal.contains('OUTROS') ? 'OUTROS' : 'ENTREGA');
+                
+                final model = ChamadaModel(
+                  id: id,
+                  tipo: TipoChamada.simples,
+                  status: StatusChamada.recebida,
+                  horario: DateTime.now(),
+                  tipoPedido: tipoTag,
+                  cliente: newRecord['cliente']?.toString() ?? 'Nova Rota Recebida',
+                  endereco: newRecord['endereco']?.toString() ?? 'Endereço não informado',
+                  bairro: '',
+                  cidade: '',
+                  distancia: 0.0,
+                );
+                if (!contexto.mounted) return;
+                showDialog(
+                  context: contexto,
+                  builder: (context) {
+                    return Dialog(
+                      backgroundColor: Colors.transparent,
+                      insetPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ChamadaCard(chamada: model),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey[800],
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                ),
+                                child: const Text('FECHAR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              ),
+                              const SizedBox(width: 16),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF64B5F6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                ),
+                                child: const Text('ACEITAR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                );
+              }
             }
           }
         }
@@ -222,13 +329,125 @@ class SupabaseService {
 
             if (temRotaNova) {
               await NotificationService.showRotaRecebida(); // Dispara notificação com som 'chama'
-              final isForeground = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+              print('✅ Rota nova via REST detectada.');
 
-              if (!isForeground) {
-                print('✅ Rota nova via REST em background. Disparando overlay nativo...');
-                await V10OverlayBridge.abrirPainelResumo(list);
-              } else {
-                print('✅ Rota nova via REST, app aberto.');
+              final rotaNovaId = idsAtuais.firstWhere((id) => !_idsRotasConhecidas.contains(id));
+              final rotaNovaMap = list.firstWhere((rota) => rota['id'].toString() == rotaNovaId);
+
+              final lifecycleState = WidgetsBinding.instance.lifecycleState;
+              final isBackground = lifecycleState == AppLifecycleState.paused || 
+                                   lifecycleState == AppLifecycleState.inactive || 
+                                   lifecycleState == AppLifecycleState.hidden;
+                                   
+              if (isBackground) {
+                print('I/flutter (12932): 🚀 DISPARANDO OVERLAY VIA REST/POLLING');
+                try {
+                  const MethodChannel mainChannel = MethodChannel('com.v10.delivery/main_overlay');
+                  final bool temPermissao = await mainChannel.invokeMethod('checkOverlayPermission');
+                  
+                  if (!temPermissao) {
+                    await mainChannel.invokeMethod('requestOverlayPermission');
+                    print('⚠️ Solicitando permissão de overlay ao usuário...');
+                  } else {
+                    final mapToEncode = Map<String, dynamic>.from(rotaNovaMap);
+                    
+                    if (mapToEncode['lat'] != null && mapToEncode['lng'] != null) {
+                      try {
+                        final pos = await Geolocator.getLastKnownPosition();
+                        if (pos != null) {
+                          final lat = double.tryParse(mapToEncode['lat'].toString()) ?? 0.0;
+                          final lng = double.tryParse(mapToEncode['lng'].toString()) ?? 0.0;
+                          if (lat != 0.0 && lng != 0.0) {
+                            final url = Uri.parse('http://router.project-osrm.org/route/v1/driving/${pos.longitude},${pos.latitude};$lng,$lat?overview=false');
+                            final res = await http.get(url).timeout(const Duration(seconds: 3));
+                            if (res.statusCode == 200) {
+                              final dataOsrm = jsonDecode(res.body);
+                              final kmOsrm = (dataOsrm['routes'][0]['distance'] as num) / 1000.0;
+                              mapToEncode['distancia'] = kmOsrm;
+                              print('✅ OSRM (REST): Distância real confirmada para o Overlay: $kmOsrm km');
+                            }
+                          }
+                        }
+                      } catch (e) {
+                        print('❌ Erro no cálculo OSRM (REST) para o Overlay: $e');
+                      }
+                    }
+
+                    final rotaFiltrada = list.where((rota) => !_idsRotasConhecidas.contains(rota['id'].toString())).toList();
+                    if (rotaFiltrada.isEmpty) rotaFiltrada.add(rotaNovaMap);
+
+                    if (rotaFiltrada.length > 1) {
+                      mapToEncode['isRoteiro'] = true;
+                      mapToEncode['totalPedidos'] = rotaFiltrada.length;
+                      mapToEncode['tipo'] = 'multipla';
+                      
+                      // Início (Ponto Verde)
+                      final inicio = rotaFiltrada.first;
+                      mapToEncode['inicioEndereco'] = (inicio['endereco'] ?? '').toString().replaceAll('*', '').trim();
+                      mapToEncode['inicioCliente'] = (inicio['cliente'] ?? '').toString().replaceAll('*', '').trim();
+
+                      // Fim (Ponto Coral) - OBRIGATÓRIO PEGAR O LAST
+                      final fim = rotaFiltrada.last;
+                      mapToEncode['fimEndereco'] = (fim['endereco'] ?? '').toString().replaceAll('*', '').trim();
+                      mapToEncode['fimCliente'] = (fim['cliente'] ?? '').toString().replaceAll('*', '').trim();
+
+                      if (rotaFiltrada.length > 1 && mapToEncode['inicioEndereco'] == mapToEncode['fimEndereco']) {
+                         print("⚠️ ALERTA: Início e Fim idênticos detectados. Verifique se a lista está correta.");
+                      }
+
+                      print('🔍 DEBUG ROTA: Início=${mapToEncode['inicioCliente']} | Fim=${mapToEncode['fimCliente']}');
+                      
+                      final int coletas = rotaFiltrada.where((e) {
+                        final t = (e['tipo'] ?? e['tipoServico'] ?? '').toString().toUpperCase();
+                        return t.contains('COLETA') || t.contains('RECOLHA');
+                      }).length;
+
+                      final int outros = rotaFiltrada.where((e) {
+                        final t = (e['tipo'] ?? e['tipoServico'] ?? '').toString().toUpperCase();
+                        return t.contains('OUTRO');
+                      }).length;
+
+                      final int entregas = rotaFiltrada.length - (coletas + outros);
+                      
+                      mapToEncode['total_entregas'] = (coletas == 0 && outros == 0) ? rotaFiltrada.length : entregas;
+                      mapToEncode['total_coletas'] = coletas;
+                      mapToEncode['total_outros'] = outros;
+                      
+                      double kmTotalAcumulado = 0.0;
+                      for (var item in rotaFiltrada) {
+                        var valorKm = item['distancia'] ?? item['km'] ?? item['distanciaEstimada'];
+                        
+                        if (valorKm == null || valorKm == 0 || valorKm == 0.0 || valorKm == '0' || valorKm == '0.0') {
+                          final latD = double.tryParse(item['lat']?.toString() ?? '');
+                          final lngD = double.tryParse(item['lng']?.toString() ?? '');
+                          if (latD != null && lngD != null) {
+                            valorKm = await DistanciaService.instance.calcularDistanciaAte(latD, lngD);
+                            item['distancia'] = valorKm;
+                          }
+                        }
+                        
+                        final kmConvertido = (valorKm is num) 
+                            ? valorKm.toDouble() 
+                            : (double.tryParse(valorKm.toString()) ?? 0.0);
+                        
+                        kmTotalAcumulado += kmConvertido;
+                      }
+                      
+                      if (kmTotalAcumulado > 0.0) {
+                        mapToEncode['km_total'] = double.parse(kmTotalAcumulado.toStringAsFixed(1));
+                      } else {
+                        mapToEncode['km_total'] = mapToEncode['distancia'];
+                      }
+                      
+                      print('📦 OVERLAY DATA PREP -> Total KM Somado: ${mapToEncode['km_total']} | Fim: ${mapToEncode['fimEndereco']}');
+                    }
+
+                    print('📦 PAYLOAD OVERLAY (REST): KM preparado = ${mapToEncode['distancia']}');
+                    await _dispararOverlaySeguro(mapToEncode);
+                  }
+                } catch (e) {
+                  print('❌ Erro ao disparar Overlay Nativo (REST): $e');
+                }
               }
             }
             _idsRotasConhecidas = idsAtuais;
@@ -312,14 +531,7 @@ class SupabaseService {
 
                 if (temRotaNova) {
                   await NotificationService.showRotaRecebida(); // Dispara notificação com som 'chama'
-                  final isForeground = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
-
-                  if (!isForeground) {
-                    print('✅ Rota via REALTIME em background. Disparando overlay nativo...');
-                    await V10OverlayBridge.abrirPainelResumo(mapped);
-                  } else {
-                    print('✅ Rota via REALTIME, app aberto.');
-                  }
+                  print('✅ Rota via REALTIME detectada.');
                 }
                 _idsRotasConhecidas = idsAtuais;
               }
@@ -472,5 +684,24 @@ class SupabaseService {
     } catch (e) {
       print('⚡ SYSTEM: Erro ao verificar conexão: $e');
     }
+  }
+
+  static Future<void> _dispararOverlaySeguro(Map<String, dynamic> payload) async {
+    final kmParaVerificar = payload['km_total'] ?? payload['distancia'] ?? 0.0;
+    final kmConvertidoParaVerificar = (kmParaVerificar is num) 
+        ? kmParaVerificar.toDouble() 
+        : (double.tryParse(kmParaVerificar.toString()) ?? 0.0);
+    
+    if (kmConvertidoParaVerificar <= 0.0) {
+      print("⚠️ OVERLAY BLOQUEADO (Gatekeeper): KM ainda não calculado ou zerado.");
+      return; 
+    }
+    
+    final String jsonPayload = jsonEncode(payload);
+    const MethodChannel mainChannel = MethodChannel('com.v10.delivery/main_overlay');
+    
+    print('Disparando Overlay Nativo...');
+    await mainChannel.invokeMethod('showOverlay', {'rota_json': jsonPayload});
+    print('✅ Overlay nativo (Isolate) acionado com sucesso e KM validado!');
   }
 }

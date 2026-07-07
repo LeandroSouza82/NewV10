@@ -29,14 +29,37 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
 
     // Escuta atualizações de distância vindas do GPS (passivamente)
     DistanciaService.instance.distanciasNotifier.addListener(_onDistanciasAtualizadas);
+
+    // Gatilho A: Ordenação após o carregamento inicial
+    ordenarPorDistancia();
   }
 
   void _onDistanciasAtualizadas() {
     if (mounted) {
       setState(() {
         _distanciaTextos = DistanciaService.instance.distanciasNotifier.value;
+        // Injeta o valor do notifier de volta no objeto para que a ordenação funcione
+        for (var rota in rotas) {
+          final id = rota['id']?.toString();
+          if (id != null && _distanciaTextos.containsKey(id)) {
+            final texto = _distanciaTextos[id]!;
+            final limpo = texto.replaceAll(RegExp(r'[^\d.]'), '');
+            rota['distancia'] = double.tryParse(limpo) ?? rota['distancia'];
+          }
+        }
       });
     }
+  }
+
+  void ordenarPorDistancia() {
+    rotas.sort((a, b) {
+      final distA = a['distancia'] ?? a['km'] ?? 999999.0;
+      final distB = b['distancia'] ?? b['km'] ?? 999999.0;
+      final numA = (distA is num) ? distA.toDouble() : (double.tryParse(distA.toString()) ?? 999999.0);
+      final numB = (distB is num) ? distB.toDouble() : (double.tryParse(distB.toString()) ?? 999999.0);
+      return numA.compareTo(numB);
+    });
+    if (mounted) setState(() {});
   }
 
   @override
@@ -50,6 +73,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
       });
       // Atualiza o serviço com a nova lista de entregas
       DistanciaService.instance.atualizarEntregas(rotas);
+      ordenarPorDistancia();
     }
   }
 
@@ -112,6 +136,9 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
       setState(() {
         rotas.removeWhere((item) => item['id'] == rota['id']);
       });
+      DistanciaService.instance.atualizarEntregas(rotas);
+      DistanciaService.instance.forcarRecalculoImediato();
+      ordenarPorDistancia(); // Gatilho B: Ao finalizar entrega
     }
   }
 
@@ -132,14 +159,24 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
       setState(() {
         rotas.removeWhere((item) => item['id'] == rota['id']);
       });
+      DistanciaService.instance.atualizarEntregas(rotas);
+      DistanciaService.instance.forcarRecalculoImediato();
+      ordenarPorDistancia(); // Gatilho B: Ao falhar entrega
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return ReorderableListView.builder(
-      padding: const EdgeInsets.only(bottom: 80, top: 8), // Espaço extra no final
-      itemCount: rotas.length,
+    return RefreshIndicator(
+      onRefresh: () async {
+        // Gatilho C: Recalcula e ordena no Pull-to-Refresh
+        DistanciaService.instance.forcarRecalculoImediato();
+        await Future.delayed(const Duration(milliseconds: 500));
+        ordenarPorDistancia();
+      },
+      child: ReorderableListView.builder(
+        padding: const EdgeInsets.only(bottom: 80, top: 8), // Espaço extra no final
+        itemCount: rotas.length,
       onReorder: _reorder,
       proxyDecorator: (child, index, animation) {
         return Material(
@@ -357,6 +394,6 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
           ),
         );
       },
-    );
+    ));
   }
 }
