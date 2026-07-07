@@ -28,8 +28,8 @@ class _OverlayAppState extends State<OverlayApp> {
             final Map<String, dynamic> data = jsonDecode(payload);
             
             final model = ChamadaModel.fromJson(data);
-            print('🧩 OVERLAY PARSE: Tipo=${model.tipo}, TotalPedidos=${model.totalPedidos}, KM=${model.kmTotal ?? model.distancia}');
-            print('📥 OVERLAY RECEBEU: Tipo=${model.tipo} | TotalPedidos=${model.totalPedidos}');
+            debugPrint('🧩 OVERLAY PARSE: Tipo=${model.tipo}, TotalPedidos=${model.totalPedidos}, KM=${model.kmTotal ?? model.distancia}');
+            debugPrint('📥 OVERLAY RECEBEU: Tipo=${model.tipo} | TotalPedidos=${model.totalPedidos}');
 
             setState(() {
               _chamadaAtual = model;

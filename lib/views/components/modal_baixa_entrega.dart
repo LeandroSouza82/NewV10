@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'signature_pad.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -481,25 +480,6 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
     );
   }
 
-  IconData _getIconForRecebedor(String opcao) {
-    switch (opcao) {
-      case 'Destinatário':
-      case 'Destinatario': return Icons.person_outline_rounded;
-      case 'Porteiro': return Icons.badge_outlined;
-      case 'Zelador': return Icons.key_outlined;
-      case 'Sindico':
-      case 'Síndico': return Icons.apartment_rounded;
-      case 'Vizinho': return Icons.group_outlined;
-      case 'Familiar': return Icons.family_restroom_rounded;
-      case 'Faxineiro': return Icons.cleaning_services_rounded;
-      case 'Morador': return Icons.home_outlined;
-      case 'Locker': return Icons.inventory_2_outlined;
-      case 'Correios': return Icons.local_shipping_outlined;
-      case 'Ata Registrada': return Icons.assignment_rounded;
-      default: return Icons.more_horiz_rounded;
-    }
-  }
-
   List<String> get _getOpcoesRecebedor {
     List<String> opcoes = List.from(_opcoesRecebedor);
     if (_isOutros && !opcoes.contains('Ata Registrada')) {
@@ -534,7 +514,7 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
       ),
       dropdownColor: const Color(0xFF112240),
       style: const TextStyle(color: AppColors.textWhite, fontSize: 14),
-      value: _recebedorSelecionado,
+      initialValue: _recebedorSelecionado,
       isExpanded: true,
       hint: Text('Selecione quem recebeu',
           style: TextStyle(

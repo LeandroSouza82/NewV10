@@ -56,8 +56,11 @@ class ChamadaModel {
     int contagemListas = 0;
     if (json['pedidos'] is List) {
       contagemListas = (json['pedidos'] as List).length;
-    } else if (json['paradas'] is List) contagemListas = (json['paradas'] as List).length;
-    else if (json['entregas'] is List) contagemListas = (json['entregas'] as List).length;
+    } else if (json['paradas'] is List) {
+      contagemListas = (json['paradas'] as List).length;
+    } else if (json['entregas'] is List) {
+      contagemListas = (json['entregas'] as List).length;
+    }
 
     // b) Verifique variações de chaves numéricas
     int totalPedidos = contagemListas > 0 ? contagemListas : 1;

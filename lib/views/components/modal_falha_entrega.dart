@@ -2,7 +2,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -10,13 +9,6 @@ import 'dart:async';
 import '../../services/supabase_service.dart';
 import '../../services/sync_service.dart';
 import '../../services/audio_service.dart';
-
-class MotivoFalha {
-  final String id;
-  final String label;
-  final IconData icone;
-  const MotivoFalha(this.id, this.label, this.icone);
-}
 
 class ModalFalhaEntrega extends StatefulWidget {
   final Map<String, dynamic> rota;
@@ -37,17 +29,6 @@ class ModalFalhaEntrega extends StatefulWidget {
 }
 
 class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
-  static const List<MotivoFalha> _motivos = [
-    MotivoFalha('Cliente Ausente', 'Cliente ausente', Icons.door_front_door_outlined),
-    MotivoFalha('Recusou Entrega', 'Cliente recusou', Icons.close_rounded),
-    MotivoFalha('Endereço incorreto', 'Endereço incorreto', Icons.location_on_outlined),
-    MotivoFalha('Sem caixa de correio', 'Sem caixa de correio', Icons.markunread_mailbox_outlined),
-    MotivoFalha('Falta de documentos', 'Falta de documentos físicos', Icons.description_outlined),
-    MotivoFalha('Ata não registrada', 'ATA não registrada', Icons.assignment_outlined),
-    MotivoFalha('Local Fechado', 'Sem acesso ao local', Icons.lock_outline),
-    MotivoFalha('Outros', 'Outro motivo', Icons.warning_amber_rounded),
-  ];
-
   String? _motivoSelecionado;
   final TextEditingController _descricaoController = TextEditingController();
   File? _foto;
@@ -433,7 +414,7 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
       ),
       dropdownColor: const Color(0xFF1a2740),
       style: const TextStyle(color: Colors.white, fontSize: 14),
-      value: _motivoSelecionado,
+      initialValue: _motivoSelecionado,
       isExpanded: true,
       items: [
         'Cliente Ausente',
