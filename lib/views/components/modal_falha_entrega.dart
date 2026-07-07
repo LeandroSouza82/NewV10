@@ -102,9 +102,14 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
     final diaExtenso = diasSemana[agora.weekday - 1];
     
     final nomeMot = motoristaNome.trim().isEmpty ? 'Leandro' : motoristaNome;
+    
+    final textoObs = _descricaoController.text.trim().isEmpty 
+        ? 'Nenhuma' 
+        : _descricaoController.text.trim();
 
     return '*Status:* ❌ Falha\n'
-        '*Motivo:* ${_motivoSelecionado ?? _descricaoController.text.trim()}\n'
+        '*Motivo:* ${_motivoSelecionado ?? 'Não informado'}\n'
+        '*Obs:* $textoObs\n'
         '*Cliente:* ${widget.clienteNome}\n'
         '*Endereco:* ${widget.endereco}\n'
         '*Motorista:* $nomeMot\n'
