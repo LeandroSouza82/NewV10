@@ -95,25 +95,33 @@ class AudioService {
   }
 
   Future<void> tocarNovaChamada() async {
-    if (somNovaChamada) {
+    final prefs = await SharedPreferences.getInstance();
+    final ativo = prefs.getBool('somNovaChamada') ?? true;
+    if (ativo) {
       await _tocarSom('chama.mp3');
     }
   }
 
   Future<void> tocarRotaFinalizada() async {
-    if (somRotaFinalizada) {
+    final prefs = await SharedPreferences.getInstance();
+    final ativo = prefs.getBool('somRotaFinalizada') ?? true;
+    if (ativo) {
       await _tocarSom('sucesso.mp3');
     }
   }
 
   Future<void> tocarRotaCompleta() async {
-    if (somRotaCompleta) {
+    final prefs = await SharedPreferences.getInstance();
+    final ativo = prefs.getBool('somRotaCompleta') ?? true;
+    if (ativo) {
       await _tocarSom('toque_final.mp3', isFinal: true);
     }
   }
 
   Future<void> tocarAlertaFalha() async {
-    if (somAlertaFalha) {
+    final prefs = await SharedPreferences.getInstance();
+    final ativo = prefs.getBool('somAlertaFalha') ?? true;
+    if (ativo) {
       await _tocarSom('falha.mp3');
     }
   }

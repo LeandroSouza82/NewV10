@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
@@ -15,18 +16,21 @@ class NotificationService {
   }
 
   static Future<void> showRotaRecebida() async {
+    final prefs = await SharedPreferences.getInstance();
+    final somAtivo = prefs.getBool('somNovaChamada') ?? true;
+
     await _plugin.show(
       id: 0,
       title: 'Nova Rota Recebida',
       body: 'Toque para abrir',
-      notificationDetails: const NotificationDetails(
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           'canal_urgente',
           'Alertas de Rota',
           importance: Importance.max,
           priority: Priority.high,
-          sound: RawResourceAndroidNotificationSound('chama'), // O Android buscará chama.mp3 em res/raw
-          playSound: true,
+          sound: somAtivo ? const RawResourceAndroidNotificationSound('chama') : null,
+          playSound: somAtivo,
         ),
       ),
     );
