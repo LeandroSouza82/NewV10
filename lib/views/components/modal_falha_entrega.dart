@@ -426,10 +426,17 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
       value: _motivoSelecionado,
       isExpanded: true,
       items: [
-        'Cliente Ausente', 
-        'Endereço Não Encontrado', 
-        'Recusado pelo Destinatário', 
+        'Cliente Ausente',
         'Estabelecimento Fechado',
+        'Endereço Não Encontrado',
+        'Número Não Localizado',
+        'Mudou-se',
+        'Recusado pelo Destinatário',
+        'Área de Risco / Inacessível',
+        'Falta de Tempo Hábil / Atraso',
+        'Problema Mecânico / Veículo',
+        'Malote / Pacote não estava pronto',
+        'Extravio / Avaria',
         'Ata não registrada'
       ].map((motivo) => DropdownMenuItem(
         value: motivo,
