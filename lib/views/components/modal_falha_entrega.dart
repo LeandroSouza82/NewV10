@@ -91,29 +91,24 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
   }
 
   String _gerarMensagemWhatsApp(String motoristaNome, String observacaoFinal) {
-    final horaFormatada = DateFormat('HH:mm').format(DateTime.now());
-
-    final isOutros = widget.tipo.toLowerCase() == 'outros';
-    final displayTipo = isOutros ? 'OUTROS/ATA' : ((widget.tipo.toLowerCase() == 'coleta' || widget.tipo.toLowerCase() == 'recolha') ? 'COLETA' : widget.tipo.toUpperCase());
+    final agora = DateTime.now();
+    final horas = '${agora.hour.toString().padLeft(2, '0')}:${agora.minute.toString().padLeft(2, '0')}';
+    final dataFormatada = '${agora.day.toString().padLeft(2, '0')}/${agora.month.toString().padLeft(2, '0')}/${agora.year}';
     
-    if (isOutros) {
-      return '''------------- *$displayTipo* -------------
-*Status:* ❌ Falha
-*Observações:* $observacaoFinal
-*Cliente:* ${widget.clienteNome}
-*Endereço:* ${widget.endereco}
-*Motorista:* $motoristaNome
-*Hora:* $horaFormatada'''.trim();
-    }
+    const diasSemana = [
+      'segunda-feira', 'terça-feira', 'quarta-feira', 
+      'quinta-feira', 'sexta-feira', 'sábado', 'domingo'
+    ];
+    final diaExtenso = diasSemana[agora.weekday - 1];
+    
+    final nomeMot = motoristaNome.trim().isEmpty ? 'Leandro' : motoristaNome;
 
-    return '''------------- *$displayTipo* -------------
-*Status:* ❌ Falha
-*Motivo:* ${_motivoSelecionado ?? 'Não informado'}
-*Obs:* $observacaoFinal
-*Cliente:* ${widget.clienteNome}
-*Endereço:* ${widget.endereco}
-*Motorista:* $motoristaNome
-*Hora:* $horaFormatada'''.trim();
+    return '*Status:* ❌ Falha\n'
+        '*Motivo:* ${_motivoSelecionado ?? _descricaoController.text.trim()}\n'
+        '*Cliente:* ${widget.clienteNome}\n'
+        '*Endereco:* ${widget.endereco}\n'
+        '*Motorista:* $nomeMot\n'
+        '*Hora:* $horas $diaExtenso dia $dataFormatada';
   }
 
   Future<void> _confirmar() async {

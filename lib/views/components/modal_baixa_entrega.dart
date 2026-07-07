@@ -54,6 +54,7 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
 
   final GlobalKey<SignaturePadState> _signatureKey = GlobalKey<SignaturePadState>();
   bool _assinaturaOk = false;
+  bool _isSigning = false;
 
   @override
   void initState() {
@@ -67,9 +68,14 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
     super.dispose();
   }
 
+  bool get _isOutros => widget.tipo.toLowerCase() == 'outros' || widget.rota['tipoServico']?.toString().toLowerCase() == 'outros';
+
   bool get _recebedorOk => _recebedorSelecionado != null;
   bool get _nomeOk => _nomeObsController.text.trim().isNotEmpty;
-  bool get _formularioValido => _recebedorOk && _nomeOk && _assinaturaOk;
+  bool get _formularioValido {
+    if (_isOutros) return _recebedorOk;
+    return _recebedorOk && _nomeOk && _assinaturaOk;
+  }
 
   Future<void> _tirarFoto() async {
     final picker = ImagePicker();
@@ -108,28 +114,36 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
   }
 
   String _gerarMensagemWhatsApp(String motoristaNome, String observacaoFinal) {
+    if (_isOutros) {
+      final agora = DateTime.now();
+      final horas = '${agora.hour.toString().padLeft(2, '0')}:${agora.minute.toString().padLeft(2, '0')}';
+      final dataFormatada = '${agora.day.toString().padLeft(2, '0')}/${agora.month.toString().padLeft(2, '0')}/${agora.year}';
+      
+      const diasSemana = [
+        'segunda-feira', 'terça-feira', 'quarta-feira', 
+        'quinta-feira', 'sexta-feira', 'sábado', 'domingo'
+      ];
+      final diaExtenso = diasSemana[agora.weekday - 1];
+      
+      final nomeMot = motoristaNome.trim().isEmpty ? 'Leandro' : motoristaNome;
+      return '------------- *OUTROS/ATA* -------------\n\n'
+          '*Status:* ✅ Sucesso\n'
+          '*Observacoes:* ${_recebedorSelecionado ?? 'Ata Registrada'}\n'
+          '*Cliente:* ${widget.clienteNome}\n'
+          '*Endereco:* ${widget.endereco}\n'
+          '*Motorista:* $nomeMot\n'
+          '*Hora:* $horas $diaExtenso dia $dataFormatada';
+    }
+
     final horaFormatada = DateFormat('HH:mm').format(DateTime.now());
     final textoDigitado = _nomeObsController.text.trim();
     final recebedorFinal = textoDigitado.isNotEmpty
         ? '${_recebedorSelecionado ?? ''} $textoDigitado'.trim()
         : (_recebedorSelecionado ?? 'Nao informado');
 
-    final isOutros = widget.tipo.toLowerCase() == 'outros';
     final isColeta = widget.tipo.toLowerCase() == 'coleta' ||
         widget.tipo.toLowerCase() == 'recolha';
-    final displayTipo = isOutros
-        ? 'OUTROS/ATA'
-        : (isColeta ? 'COLETA' : widget.tipo.toUpperCase());
-
-    if (isOutros) {
-      return '------------- *$displayTipo* -------------\n'
-          '*Status:* ✅ Sucesso\n'
-          '*Observacoes:* $observacaoFinal\n'
-          '*Cliente:* ${widget.clienteNome}\n'
-          '*Endereco:* ${widget.endereco}\n'
-          '*Motorista:* $motoristaNome\n'
-          '*Hora:* $horaFormatada';
-    }
+    final displayTipo = isColeta ? 'COLETA' : widget.tipo.toUpperCase();
 
     return '------------- *$displayTipo* -------------\n'
         '*Status:* ✅ Sucesso\n'
@@ -151,7 +165,7 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
     final String textoDigitado = _nomeObsController.text.trim();
 
     String observacaoFinal;
-    if (widget.tipo.toLowerCase() == 'outros') {
+    if (_isOutros) {
       observacaoFinal =
           textoDigitado.isEmpty ? recebedor : '$recebedor - $textoDigitado';
     } else {
@@ -326,6 +340,7 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: SingleChildScrollView(
+            physics: _isSigning ? const NeverScrollableScrollPhysics() : const ClampingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,15 +359,15 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
                 ),
                 _buildHeader(),
                 const SizedBox(height: 24),
-                _buildSectionLabel(labelRecebedor, actionText: 'role para ver mais ↓'),
+                _buildSectionLabel(labelRecebedor),
                 const SizedBox(height: 10),
                 _buildRecebedoresList(),
                 const SizedBox(height: 20),
-                _buildSectionLabel('NOME / OBSERVACAO *'),
+                _buildSectionLabel(_isOutros ? 'NOME / OBSERVACAO' : 'NOME / OBSERVACAO *', optional: _isOutros),
                 const SizedBox(height: 8),
                 _buildNomeField(hintNome),
                 const SizedBox(height: 20),
-                _buildSectionLabel('ASSINATURA DIGITAL *'),
+                _buildSectionLabel(_isOutros ? 'ASSINATURA DIGITAL' : 'ASSINATURA DIGITAL *', optional: _isOutros),
                 const SizedBox(height: 8),
                 _buildSignaturePad(),
                 const SizedBox(height: 20),
@@ -469,101 +484,59 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
       case 'Morador': return Icons.home_outlined;
       case 'Locker': return Icons.inventory_2_outlined;
       case 'Correios': return Icons.local_shipping_outlined;
+      case 'Ata Registrada': return Icons.assignment_rounded;
       default: return Icons.more_horiz_rounded;
     }
   }
 
+  List<String> get _getOpcoesRecebedor {
+    List<String> opcoes = List.from(_opcoesRecebedor);
+    if (_isOutros && !opcoes.contains('Ata Registrada')) {
+      opcoes.add('Ata Registrada');
+    }
+    return opcoes;
+  }
+
   Widget _buildRecebedoresList() {
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 196),
-      child: Stack(
-        children: [
-          ListView.separated(
-            shrinkWrap: true,
-            itemCount: _opcoesRecebedor.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final opcao = _opcoesRecebedor[index];
-              final isSelected = _recebedorSelecionado == opcao;
-              
-              return GestureDetector(
-                onTap: () => setState(() => _recebedorSelecionado = opcao),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.successGreen.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.03),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected ? AppColors.successGreen.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.08),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.successGreen.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        child: Icon(
-                          _getIconForRecebedor(opcao),
-                          color: isSelected ? AppColors.successGreen : Colors.white.withValues(alpha: 0.5),
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          opcao,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                            color: isSelected ? AppColors.successGreen : Colors.white.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 18,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isSelected ? AppColors.successGreen : Colors.transparent,
-                          border: Border.all(
-                            color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.15),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: isSelected ? const Icon(Icons.circle, color: Colors.white, size: 8) : null,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 24,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [Color(0xFF0D1F38), Colors.transparent],
-                ),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-              ),
-            ),
-          ),
-        ],
+    final opcoes = _getOpcoesRecebedor;
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+              color: AppColors.textGrey.withValues(alpha: 0.2), width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+              color: AppColors.textGrey.withValues(alpha: 0.2), width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              const BorderSide(color: AppColors.successGreen, width: 1.5),
+        ),
+        filled: true,
+        fillColor: const Color(0xFF1A2E4A),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
+      dropdownColor: const Color(0xFF112240),
+      style: const TextStyle(color: AppColors.textWhite, fontSize: 14),
+      value: _recebedorSelecionado,
+      isExpanded: true,
+      hint: Text('Selecione quem recebeu',
+          style: TextStyle(
+              color: AppColors.textGrey.withValues(alpha: 0.6), fontSize: 13)),
+      items: opcoes.map((tipo) => DropdownMenuItem(
+            value: tipo,
+            child: Text(tipo, style: const TextStyle(fontSize: 14)),
+          )).toList(),
+      onChanged: (valor) {
+        setState(() {
+          _recebedorSelecionado = valor;
+        });
+      },
     );
   }
 
@@ -595,13 +568,35 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
   }
 
   Widget _buildSignaturePad() {
-    return SignaturePad(
-      key: _signatureKey,
-      onChanged: (temAssinatura) {
-        if (_assinaturaOk != temAssinatura) {
-          setState(() => _assinaturaOk = temAssinatura);
-        }
+    return Listener(
+      onPointerDown: (event) {
+        setState(() {
+          _isSigning = true;
+        });
       },
+      onPointerUp: (event) {
+        setState(() {
+          _isSigning = false;
+        });
+      },
+      behavior: HitTestBehavior.translucent,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: _isSigning ? AppColors.successGreen : AppColors.textGrey.withValues(alpha: 0.2),
+            width: _isSigning ? 2.0 : 1.0,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: SignaturePad(
+          key: _signatureKey,
+          onChanged: (temAssinatura) {
+            if (_assinaturaOk != temAssinatura) {
+              setState(() => _assinaturaOk = temAssinatura);
+            }
+          },
+        ),
+      ),
     );
   }
 
@@ -709,10 +704,12 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
       child: Column(
         children: [
           _checklistItem('Quem recebeu', _recebedorOk),
-          const SizedBox(height: 8),
-          _checklistItem('Nome preenchido', _nomeOk),
-          const SizedBox(height: 8),
-          _checklistItem('Assinatura digital', _assinaturaOk),
+          if (!_isOutros) ...[
+            const SizedBox(height: 8),
+            _checklistItem('Nome preenchido', _nomeOk),
+            const SizedBox(height: 8),
+            _checklistItem('Assinatura digital', _assinaturaOk),
+          ],
         ],
       ),
     );
