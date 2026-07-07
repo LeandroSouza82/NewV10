@@ -108,7 +108,8 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
         '*Cliente:* ${widget.clienteNome}\n'
         '*Endereco:* ${widget.endereco}\n'
         '*Motorista:* $nomeMot\n'
-        '*Hora:* $horas $diaExtenso dia $dataFormatada';
+        '*Hora:* $horas\n'
+        '*Dia:* $diaExtenso $dataFormatada';
   }
 
   Future<void> _confirmar() async {

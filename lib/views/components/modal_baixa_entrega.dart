@@ -70,10 +70,14 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
 
   bool get _isOutros => widget.tipo.toLowerCase() == 'outros' || widget.rota['tipoServico']?.toString().toLowerCase() == 'outros';
 
+  bool get _isLockerOuCorreio => _recebedorSelecionado != null && 
+      (_recebedorSelecionado!.toLowerCase() == 'correios' || _recebedorSelecionado!.toLowerCase() == 'locker');
+
   bool get _recebedorOk => _recebedorSelecionado != null;
   bool get _nomeOk => _nomeObsController.text.trim().isNotEmpty;
   bool get _formularioValido {
     if (_isOutros) return _recebedorOk;
+    if (_isLockerOuCorreio) return _recebedorOk;
     return _recebedorOk && _nomeOk && _assinaturaOk;
   }
 
@@ -114,28 +118,29 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
   }
 
   String _gerarMensagemWhatsApp(String motoristaNome, String observacaoFinal) {
+    final agora = DateTime.now();
+    final horas = '${agora.hour.toString().padLeft(2, '0')}:${agora.minute.toString().padLeft(2, '0')}';
+    final dataFormatada = '${agora.day.toString().padLeft(2, '0')}/${agora.month.toString().padLeft(2, '0')}/${agora.year}';
+    
+    const diasSemana = [
+      'segunda-feira', 'terça-feira', 'quarta-feira', 
+      'quinta-feira', 'sexta-feira', 'sábado', 'domingo'
+    ];
+    final diaExtenso = diasSemana[agora.weekday - 1];
+
+    final nomeMot = motoristaNome.trim().isEmpty ? 'Leandro' : motoristaNome;
+
     if (_isOutros) {
-      final agora = DateTime.now();
-      final horas = '${agora.hour.toString().padLeft(2, '0')}:${agora.minute.toString().padLeft(2, '0')}';
-      final dataFormatada = '${agora.day.toString().padLeft(2, '0')}/${agora.month.toString().padLeft(2, '0')}/${agora.year}';
-      
-      const diasSemana = [
-        'segunda-feira', 'terça-feira', 'quarta-feira', 
-        'quinta-feira', 'sexta-feira', 'sábado', 'domingo'
-      ];
-      final diaExtenso = diasSemana[agora.weekday - 1];
-      
-      final nomeMot = motoristaNome.trim().isEmpty ? 'Leandro' : motoristaNome;
       return '------------- *OUTROS/ATA* -------------\n\n'
           '*Status:* ✅ Sucesso\n'
           '*Observacoes:* ${_recebedorSelecionado ?? 'Ata Registrada'}\n'
           '*Cliente:* ${widget.clienteNome}\n'
           '*Endereco:* ${widget.endereco}\n'
           '*Motorista:* $nomeMot\n'
-          '*Hora:* $horas $diaExtenso dia $dataFormatada';
+          '*Hora:* $horas\n'
+          '*Dia:* $diaExtenso $dataFormatada';
     }
 
-    final horaFormatada = DateFormat('HH:mm').format(DateTime.now());
     final textoDigitado = _nomeObsController.text.trim();
     final recebedorFinal = textoDigitado.isNotEmpty
         ? '${_recebedorSelecionado ?? ''} $textoDigitado'.trim()
@@ -150,8 +155,9 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
         '*${isColeta ? 'Entregue por' : 'Recebido por'}:* $recebedorFinal\n'
         '*Cliente:* ${widget.clienteNome}\n'
         '*Endereco:* ${widget.endereco}\n'
-        '*Motorista:* $motoristaNome\n'
-        '*Hora:* $horaFormatada';
+        '*Motorista:* $nomeMot\n'
+        '*Hora:* $horas\n'
+        '*Dia:* $diaExtenso $dataFormatada';
   }
 
   Future<void> _confirmar() async {
@@ -363,14 +369,16 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
                 const SizedBox(height: 10),
                 _buildRecebedoresList(),
                 const SizedBox(height: 20),
-                _buildSectionLabel(_isOutros ? 'NOME / OBSERVACAO' : 'NOME / OBSERVACAO *', optional: _isOutros),
-                const SizedBox(height: 8),
-                _buildNomeField(hintNome),
-                const SizedBox(height: 20),
-                _buildSectionLabel(_isOutros ? 'ASSINATURA DIGITAL' : 'ASSINATURA DIGITAL *', optional: _isOutros),
-                const SizedBox(height: 8),
-                _buildSignaturePad(),
-                const SizedBox(height: 20),
+                if (!_isLockerOuCorreio) ...[
+                  _buildSectionLabel(_isOutros ? 'NOME / OBSERVACAO' : 'NOME / OBSERVACAO *', optional: _isOutros),
+                  const SizedBox(height: 8),
+                  _buildNomeField(hintNome),
+                  const SizedBox(height: 20),
+                  _buildSectionLabel(_isOutros ? 'ASSINATURA DIGITAL' : 'ASSINATURA DIGITAL *', optional: _isOutros),
+                  const SizedBox(height: 8),
+                  _buildSignaturePad(),
+                  const SizedBox(height: 20),
+                ],
                 _buildSectionLabel('FOTO DO PACOTE', optional: true),
                 const SizedBox(height: 8),
                 _buildFotoSection(),
@@ -704,7 +712,7 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
       child: Column(
         children: [
           _checklistItem('Quem recebeu', _recebedorOk),
-          if (!_isOutros) ...[
+          if (!_isOutros && !_isLockerOuCorreio) ...[
             const SizedBox(height: 8),
             _checklistItem('Nome preenchido', _nomeOk),
             const SizedBox(height: 8),
