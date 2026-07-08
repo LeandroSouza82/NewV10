@@ -308,6 +308,9 @@ class SupabaseService {
             'aviso': linha['observacoes'] ?? linha['obs'] ?? '',
             'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
             'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
+            'lat_coleta': linha['lat_coleta'],
+            'lng_coleta': linha['lng_coleta'],
+            'endereco_coleta': linha['endereco_coleta'],
             'ordem_logistica': linha['ordem_logistica'],
           };
         }).toList();
@@ -497,6 +500,9 @@ class SupabaseService {
                 'aviso': linha['observacoes'] ?? linha['obs'] ?? '',
                 'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
                 'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
+                'lat_coleta': linha['lat_coleta'],
+                'lng_coleta': linha['lng_coleta'],
+                'endereco_coleta': linha['endereco_coleta'],
                 'ordem_logistica': linha['ordem_logistica'],
               };
             }).toList();

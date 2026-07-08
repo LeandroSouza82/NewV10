@@ -94,43 +94,54 @@ class AudioService {
     }
   }
 
-  Future<void> tocarNovaChamada() async {
+  // --- MÉTODOS DE TESTE (UI) ---
+  Future<void> tocarNovaChamada() async => await playChama();
+  Future<void> tocarRotaFinalizada() async => await playSucesso();
+  Future<void> tocarRotaCompleta() async => await playFinal();
+  Future<void> tocarAlertaFalha() async => await playFalha();
+
+  // --- BLOCO DE DISPARO BLINDADO ---
+
+  static Future<void> playChama() async {
     final prefs = await SharedPreferences.getInstance();
-    final ativo = prefs.getBool('somNovaChamada') ?? true;
-    if (ativo) {
-      await _tocarSom('chama.mp3');
+    final geral = prefs.getBool('somGeralAtivo') ?? true;
+    final especifico = prefs.getBool('somNovaChamada') ?? true;
+    
+    if (geral && especifico) {
+      await AudioService.instance._tocarSom('chama.mp3');
     }
   }
 
-  Future<void> tocarRotaFinalizada() async {
+  static Future<void> playSucesso() async {
     final prefs = await SharedPreferences.getInstance();
-    final ativo = prefs.getBool('somRotaFinalizada') ?? true;
-    if (ativo) {
-      await _tocarSom('sucesso.mp3');
+    final geral = prefs.getBool('somGeralAtivo') ?? true;
+    // Assumindo 'somRotaFinalizada' como chave de sucesso individual
+    final especifico = prefs.getBool('somRotaFinalizada') ?? true; 
+    
+    if (geral && especifico) {
+      await AudioService.instance._tocarSom('sucesso.mp3');
     }
   }
 
-  Future<void> tocarRotaCompleta() async {
+  static Future<void> playFalha() async {
     final prefs = await SharedPreferences.getInstance();
-    final ativo = prefs.getBool('somRotaCompleta') ?? true;
-    if (ativo) {
-      await _tocarSom('toque_final.mp3', isFinal: true);
+    final geral = prefs.getBool('somGeralAtivo') ?? true;
+    final especifico = prefs.getBool('somAlertaFalha') ?? true;
+    
+    if (geral && especifico) {
+      await AudioService.instance._tocarSom('falha.mp3');
     }
   }
 
-  Future<void> tocarAlertaFalha() async {
+  static Future<void> playFinal() async {
     final prefs = await SharedPreferences.getInstance();
-    final ativo = prefs.getBool('somAlertaFalha') ?? true;
-    if (ativo) {
-      await _tocarSom('falha.mp3');
+    final geral = prefs.getBool('somGeralAtivo') ?? true;
+    final especifico = prefs.getBool('somRotaCompleta') ?? true;
+    
+    if (geral && especifico) {
+      await AudioService.instance._tocarSom('toque_final.mp3', isFinal: true);
     }
   }
-
-  // --- Retrocompatibilidade com métodos estáticos antigos ---
-  static Future<void> playChama() async => await AudioService.instance.tocarNovaChamada();
-  static Future<void> playFinal() async => await AudioService.instance.tocarRotaCompleta();
-  static Future<void> playSucesso() async => await AudioService.instance.tocarRotaFinalizada();
-  static Future<void> playFalha() async => await AudioService.instance.tocarAlertaFalha();
   static Future<void> stop() async {
     await AudioService.instance._player.stop();
     await AudioService.instance._playerFinal.stop();

@@ -478,36 +478,12 @@ class _HomeViewState extends State<HomeView> {
                               ],
                             ),
                           )
-                        : isFinalizado 
-                            ? const SuccessStatus() 
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.route_rounded, color: AppColors.textGrey, size: 20),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'FILA DE ROTEIRIZAÇÃO',
-                                          style: TextStyle(
-                                            color: AppColors.textGrey.withValues(alpha: 0.9),
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.5,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              Expanded(
-                                child: DraggableRouteList(
-                                  key: ValueKey(rotasAtivas.length),
-                                  rotasIniciais: rotasAtivas,
-                                ),
+                        : isFinalizado
+                            ? const SuccessStatus()
+                            : DraggableRouteList(
+                                key: ValueKey(rotasAtivas.length),
+                                rotasIniciais: rotasAtivas,
                               ),
-                            ],
-                          ),
                   ),
                 ],
               );
