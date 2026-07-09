@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'core/app_colors.dart';
+
 import 'services/permission_service.dart';
 import 'services/supabase_service.dart';
 import 'views/splash_view.dart';
@@ -12,6 +12,8 @@ import 'services/notification_service.dart';
 import 'services/presence_service.dart';
 
 import 'main_overlay.dart';
+import 'theme/app_theme.dart';
+import 'theme/theme_controller.dart';
 
 @pragma('vm:entry-point')
 void overlayMain() {
@@ -67,16 +69,19 @@ class AppDoMotorista extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      title: 'App do Motorista',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppColors.backgroundBody,
-        useMaterial3: true,
-      ),
-      home: const SplashView(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeController.instance.themeModeNotifier,
+      builder: (context, currentThemeMode, child) {
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          title: 'App do Motorista',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: currentThemeMode,
+          home: const SplashView(),
+        );
+      },
     );
   }
 }

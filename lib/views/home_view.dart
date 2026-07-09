@@ -121,8 +121,8 @@ class _HomeViewState extends State<HomeView> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppColors.cardBackground,
-          title: const Text('Navegador Padrão', style: TextStyle(color: AppColors.textWhite)),
+          backgroundColor: Theme.of(context).cardColor,
+          title: const Text('Navegador Padrão'),
           content: RadioGroup<String>(
             groupValue: navegadorSelecionado,
             onChanged: (String? value) {
@@ -135,12 +135,12 @@ class _HomeViewState extends State<HomeView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 RadioListTile<String>(
-                  title: const Text('Google Maps', style: TextStyle(color: AppColors.textWhite)),
+                  title: const Text('Google Maps'),
                   value: 'maps',
                   activeColor: AppColors.successGreen,
                 ),
                 RadioListTile<String>(
-                  title: const Text('Waze', style: TextStyle(color: AppColors.textWhite)),
+                  title: const Text('Waze'),
                   value: 'waze',
                   activeColor: AppColors.successGreen,
                 ),
@@ -268,7 +268,7 @@ class _HomeViewState extends State<HomeView> {
   void _mostrarOpcoesDeFoto(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.backgroundBody,
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -277,16 +277,16 @@ class _HomeViewState extends State<HomeView> {
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: AppColors.textWhite),
-                title: const Text('Tirar foto', style: TextStyle(color: AppColors.textWhite)),
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Tirar foto'),
                 onTap: () {
                   Navigator.pop(context);
                   _atualizarFoto(ImageSource.camera);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library, color: AppColors.textWhite),
-                title: const Text('Escolher da galeria', style: TextStyle(color: AppColors.textWhite)),
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Escolher da galeria'),
                 onTap: () {
                   Navigator.pop(context);
                   _atualizarFoto(ImageSource.gallery);
@@ -449,12 +449,12 @@ class _HomeViewState extends State<HomeView> {
                               children: [
                                 const Icon(Icons.wifi_off, color: Colors.grey, size: 60),
                                 const SizedBox(height: 24),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 32.0),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
                                   child: Text(
                                     'Você está offline. O aplicativo sincronizará os dados automaticamente assim que a conexão for restabelecida.',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(color: AppColors.textWhite, fontSize: 16, height: 1.5),
+                                    style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 16, height: 1.5),
                                   ),
                                 ),
                                 const SizedBox(height: 32),

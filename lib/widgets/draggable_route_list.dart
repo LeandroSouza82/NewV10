@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_colors.dart';
+import '../theme/theme_controller.dart';
 import '../views/components/modal_baixa_entrega.dart';
 import '../views/components/modal_falha_entrega.dart';
 import '../core/utils/location_utils.dart';
@@ -290,24 +291,29 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
             accentColor = AppColors.borderEntregas;
           }
 
-          return Container(
-            key: ValueKey(rota['id']),
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: accentColor.withValues(alpha: 0.5),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: accentColor.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+          return ValueListenableBuilder<ThemeMode>(
+            key: ValueKey(rota['id'].toString()),
+            valueListenable: ThemeController.instance.themeModeNotifier,
+            builder: (context, mode, child) {
+              final isDark = mode == ThemeMode.dark;
+              return Container(
+                key: ValueKey(rota['id'].toString()),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF2C2525) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? accentColor.withValues(alpha: 0.5) : Colors.grey.shade300,
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark ? accentColor.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              ],
-            ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -415,7 +421,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                   Text(
                     'CLIENTE',
                     style: TextStyle(
-                      color: AppColors.textGrey.withValues(alpha: 0.8),
+                      color: isDark ? AppColors.textGrey.withValues(alpha: 0.8) : Colors.grey[600],
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.0,
@@ -424,8 +430,8 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                   const SizedBox(height: 2),
                   Text(
                     rota['cliente'] ?? '',
-                    style: const TextStyle(
-                      color: AppColors.textWhite,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -436,7 +442,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                   Text(
                     'ENDEREÇO',
                     style: TextStyle(
-                      color: AppColors.textGrey.withValues(alpha: 0.8),
+                      color: isDark ? AppColors.textGrey.withValues(alpha: 0.8) : Colors.grey[600],
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.0,
@@ -453,7 +459,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                     child: Text(
                       rota['endereco'] ?? '',
                       style: TextStyle(
-                        color: AppColors.textWhite.withValues(alpha: 0.9),
+                        color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black.withValues(alpha: 0.9),
                         fontSize: 14,
                         height: 1.4,
                       ),
@@ -468,27 +474,27 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.borderRecolha.withValues(alpha: 0.1),
+                        color: isDark ? const Color(0xFF2D2D3A) : const Color(0xFF4A4A4A),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: AppColors.borderRecolha.withValues(alpha: 0.3),
+                          color: isDark ? AppColors.borderRecolha.withValues(alpha: 0.3) : Colors.grey.shade600,
                         ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
                               Icon(
                                 Icons.warning_amber_rounded,
-                                color: AppColors.borderRecolha,
+                                color: isDark ? AppColors.borderRecolha : Colors.amber[300],
                                 size: 16,
                               ),
-                              SizedBox(width: 6),
+                              const SizedBox(width: 6),
                               Text(
                                 'AVISO DO GESTOR:',
                                 style: TextStyle(
-                                  color: AppColors.borderRecolha,
+                                  color: isDark ? AppColors.borderRecolha : Colors.amber[300],
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -499,7 +505,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                           Text(
                             rota['aviso'],
                             style: const TextStyle(
-                              color: AppColors.textWhite,
+                              color: Colors.white,
                               fontSize: 14,
                             ),
                           ),
@@ -614,6 +620,8 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
             ),
           );
         },
+      );
+    },
       ),
     ),
   ),
