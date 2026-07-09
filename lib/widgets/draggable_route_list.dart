@@ -237,15 +237,30 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                   backgroundColor: Colors.green,
                   shape: const StadiumBorder(), // Formato de pílula
                 ),
-                onPressed: () {
-                  final rotaAtiva = rotas.isNotEmpty ? rotas.first : null;
-                  if (rotaAtiva != null) {
+                onPressed: () async {
+                  try {
+                    final rotaAtiva = rotas.isNotEmpty ? rotas.first : null;
+                    if (rotaAtiva == null) {
+                      throw 'Nenhuma rota ativa encontrada.';
+                    }
+
                     final double? latColeta = rotaAtiva['lat_coleta'] != null ? double.tryParse(rotaAtiva['lat_coleta'].toString()) : null;
                     final double? lngColeta = rotaAtiva['lng_coleta'] != null ? double.tryParse(rotaAtiva['lng_coleta'].toString()) : null;
                     final String enderecoColeta = rotaAtiva['endereco_coleta']?.toString() ?? '';
-                    
-                    if (latColeta != null && lngColeta != null) {
-                      _abrirNavegador(enderecoColeta, latColeta, lngColeta);
+
+                    if ((latColeta == null || lngColeta == null || latColeta == 0.0 || lngColeta == 0.0) && enderecoColeta.isEmpty) {
+                      throw 'Dados de localização da coleta ausentes.';
+                    }
+
+                    await _abrirNavegador(enderecoColeta, latColeta, lngColeta);
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Erro ao abrir rota de coleta.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
                     }
                   }
                 },
