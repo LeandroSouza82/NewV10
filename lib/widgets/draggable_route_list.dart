@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // ignore: unused_import, unnecessary_import
 import '../core/app_colors.dart';
 import '../theme/theme_controller.dart';
 import '../views/components/modal_baixa_entrega.dart';
