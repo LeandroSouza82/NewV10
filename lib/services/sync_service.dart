@@ -1,5 +1,5 @@
-// ignore_for_file: avoid_print
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -133,7 +133,9 @@ class SyncService {
         // Limpa da lista de exclusão local pós-sync confirmado
         idsFinalizadosLocalmente.remove(item['entrega_id'].toString());
       } catch (e) {
-        print('Erro ao sincronizar item: $e');
+        if (kDebugMode) {
+          print('Erro ao sincronizar item: $e');
+        }
         // Para a execução para evitar flood em caso de falha de rede contínua
         break;
       }

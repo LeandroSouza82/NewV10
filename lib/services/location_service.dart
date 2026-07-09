@@ -1,5 +1,5 @@
-// ignore_for_file: avoid_print
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'supabase_service.dart';
 
@@ -36,7 +36,9 @@ class LocationService {
   static Future<void> iniciarRastreamento(String motoristaId) async {
     final hasPermission = await requestPermission();
     if (!hasPermission) {
-      print('Sem permissão de GPS.');
+      if (kDebugMode) {
+        print('Sem permissão de GPS.');
+      }
       return;
     }
 
@@ -50,7 +52,6 @@ class LocationService {
     );
 
     _positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position position) async {
-      print('📍 Nova posição do GPS capturada: ${position.latitude}, ${position.longitude}');
       
       try {
         await SupabaseService.client.from('motoristas').update({
@@ -60,7 +61,9 @@ class LocationService {
           'ultima_atualizacao': DateTime.now().toUtc().toIso8601String(),
         }).eq('id', motoristaId);
       } catch (e) {
-        print('Erro ao atualizar posição no banco: $e');
+        if (kDebugMode) {
+          print('Erro ao atualizar posição no banco: $e');
+        }
       }
     });
 
@@ -72,7 +75,6 @@ class LocationService {
     if (_positionStream != null) {
       _positionStream!.cancel();
       _positionStream = null;
-      print('🛑 Rastreamento de posição parado.');
     }
     pararHeartbeat();
   }
@@ -89,7 +91,9 @@ class LocationService {
           'status': 'disponivel',
         }).eq('id', motoristaId);
       } catch (e) {
-        print('Erro no heartbeat: $e');
+        if (kDebugMode) {
+          print('Erro no heartbeat: $e');
+        }
       }
     });
   }

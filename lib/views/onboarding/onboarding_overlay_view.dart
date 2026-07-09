@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,7 +13,7 @@ class OnboardingOverlayView extends StatelessWidget {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      debugPrint('Erro ao solicitar permissão de overlay: $e');
+      if (kDebugMode) { debugPrint('Erro ao solicitar permissão de overlay: $e'); }
     }
   }
 

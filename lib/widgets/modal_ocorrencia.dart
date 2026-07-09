@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -336,7 +337,7 @@ class _ModalOcorrenciaState extends State<ModalOcorrencia> {
                                 setState(() => _salvando = true);
                                 try {
                                   // 1. Log para confirmar que o clique passou da trava de layout
-                                  debugPrint("Iniciando processo de salvamento...");
+                                  
 
                                   await _salvarNumeroGestor(_gestorController.text);
 
@@ -347,7 +348,7 @@ class _ModalOcorrenciaState extends State<ModalOcorrencia> {
                                     'descricao': _descricaoController.text,
                                     'status': 'pendente',
                                   });
-                                  debugPrint("Salvamento no Supabase OK!");
+                                  
 
                                   // 3. Montar e abrir o WhatsApp
                                   final String telefoneInput = _gestorController.text.trim();
@@ -384,7 +385,7 @@ class _ModalOcorrenciaState extends State<ModalOcorrencia> {
                                       SnackBar(content: Text('Erro: ${e.toString()}'), backgroundColor: Colors.red),
                                     );
                                   }
-                                  debugPrint("ERRO CAPTURADO: $e");
+                                  if (kDebugMode) { debugPrint("ERRO CAPTURADO: $e"); }
                                 } finally {
                                   if (mounted) setState(() => _salvando = false);
                                 }

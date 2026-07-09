@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,15 +29,15 @@ class _OverlayAppState extends State<OverlayApp> {
             final Map<String, dynamic> data = jsonDecode(payload);
             
             final model = ChamadaModel.fromJson(data);
-            debugPrint('🧩 OVERLAY PARSE: Tipo=${model.tipo}, TotalPedidos=${model.totalPedidos}, KM=${model.kmTotal ?? model.distancia}');
-            debugPrint('📥 OVERLAY RECEBEU: Tipo=${model.tipo} | TotalPedidos=${model.totalPedidos}');
+            
+            
 
             setState(() {
               _chamadaAtual = model;
             });
           }
         } catch (e) {
-          debugPrint('Erro ao fazer parse da rota no overlay: $e');
+          if (kDebugMode) { debugPrint('Erro ao fazer parse da rota no overlay: $e'); }
         }
       }
     });
@@ -53,7 +54,7 @@ class _OverlayAppState extends State<OverlayApp> {
     // Como estamos num isolate separado, a ação de aceitar a rota precisa 
     // ser repassada pro main app ou fazer a chamada de API direto daqui.
     // Por enquanto, apenas fecha o overlay, mas idealmente enviaria um intent pro MainActivity.
-    debugPrint('Rota Aceita no Overlay');
+    
     _fecharOverlay();
   }
 

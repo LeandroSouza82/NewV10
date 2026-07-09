@@ -307,7 +307,7 @@ class _HomeViewState extends State<HomeView> {
     try {
       await SupabaseService.logout().timeout(const Duration(seconds: 2));
     } catch (e) {
-      debugPrint('Logout offline: limpando dados locais.');
+      // Ignora falhas de timeout offline
     } finally {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();

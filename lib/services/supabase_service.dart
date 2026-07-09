@@ -1,6 +1,6 @@
-// ignore_for_file: avoid_print
 
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'dart:io';
@@ -97,15 +97,15 @@ class SupabaseService {
 
   // Inicializa monitoramento do socket Realtime para diagnóstico de conexão
   static void initializeMonitoring() {
-    print('⚡ SUPABASE MONITOR: Inicializando monitoramento do Socket Realtime...');
+    
     client.realtime.onOpen(() {
-      print('⚡ SOCKET EVENT: Conectado (Open)');
+      
     });
     client.realtime.onClose((event) {
-      print('⚡ SOCKET EVENT: Desconectado (Closed). Evento: $event');
+      if (kDebugMode) { print('⚡ SOCKET EVENT: Desconectado (Closed). Evento: $event'); }
     });
     client.realtime.onError((error) {
-      print('⚡ SOCKET EVENT: Erro na conexão: $error');
+      if (kDebugMode) { print('⚡ SOCKET EVENT: Erro na conexão: $error'); }
     });
   }
 
@@ -125,7 +125,7 @@ class SupabaseService {
       ),
       callback: (payload) async {
         WidgetsFlutterBinding.ensureInitialized();
-        print('🔔 Alteração de entrega recebida via Realtime: ${payload.newRecord}');
+        
         
         final newRecord = payload.newRecord;
         final oldRecord = payload.oldRecord;
@@ -145,7 +145,7 @@ class SupabaseService {
                                  lifecycleState == AppLifecycleState.hidden;
             
             if (isBackground) {
-              print('✅ Rota recebida em background. Exibindo notificacao local e disparando Overlay nativo...');
+              
               await NotificationService.showRotaRecebida();
               
               try {
@@ -154,7 +154,7 @@ class SupabaseService {
                 
                 if (!temPermissao) {
                   await mainChannel.invokeMethod('requestOverlayPermission');
-                  print('⚠️ Solicitando permissão de overlay ao usuário...');
+                  
                 } else {
                   final mapToEncode = Map<String, dynamic>.from(newRecord);
                   
@@ -171,23 +171,23 @@ class SupabaseService {
                             final dataOsrm = jsonDecode(res.body);
                             final kmOsrm = (dataOsrm['routes'][0]['distance'] as num) / 1000.0;
                             mapToEncode['distancia'] = kmOsrm;
-                            print('✅ OSRM: Distância real confirmada para o Overlay: $kmOsrm km');
+                            
                           }
                         }
                       }
                     } catch (e) {
-                      print('❌ Erro no cálculo OSRM para o Overlay: $e');
+                      if (kDebugMode) { print('❌ Erro no cálculo OSRM para o Overlay: $e'); }
                     }
                   }
 
-                  print('📦 PAYLOAD OVERLAY: KM preparado = ${mapToEncode['distancia']}');
+                  
                   await _dispararOverlaySeguro(mapToEncode);
                 }
               } catch (e) {
-                print('❌ Erro ao disparar Overlay Nativo: $e');
+                if (kDebugMode) { print('❌ Erro ao disparar Overlay Nativo: $e'); }
               }
             } else {
-              print('✅ Exibindo ChamadaCard popup no Foreground...');
+              
               final contexto = navigatorKey.currentContext;
               if (contexto != null) {
                 final id = newRecord['id']?.toString() ?? '';
@@ -269,7 +269,7 @@ class SupabaseService {
 
   // Atualiza o status de uma entrega
   static Future<void> atualizarStatusEntrega(String entregaId, String novoStatus) async {
-    print("AVISO: Tentando atualizar uma entrega para status: $novoStatus");
+    
     await client
         .from('entregas')
         .update({'status': novoStatus})
@@ -287,7 +287,7 @@ class SupabaseService {
 
     // Função para buscar os dados via REST
     Future<void> fetchViaRest() async {
-      print('⚡ FALLBACK: Buscando entregas via REST...');
+      
       try {
         final dataLimite = DateTime.now().toUtc().subtract(const Duration(days: 7)).toIso8601String();
 
@@ -316,7 +316,7 @@ class SupabaseService {
         }).toList();
         
         if (!controller.isClosed) {
-          print('⚡ FALLBACK: Dados REST recebidos com sucesso. Qtd: ${list.length}');
+          
           
           if (list.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
             await AudioService.playFinal();
@@ -332,7 +332,7 @@ class SupabaseService {
 
             if (temRotaNova) {
               await NotificationService.showRotaRecebida(); // Dispara notificação com som 'chama'
-              print('✅ Rota nova via REST detectada.');
+              
 
               final rotaNovaId = idsAtuais.firstWhere((id) => !_idsRotasConhecidas.contains(id));
               final rotaNovaMap = list.firstWhere((rota) => rota['id'].toString() == rotaNovaId);
@@ -343,14 +343,14 @@ class SupabaseService {
                                    lifecycleState == AppLifecycleState.hidden;
                                    
               if (isBackground) {
-                print('I/flutter (12932): 🚀 DISPARANDO OVERLAY VIA REST/POLLING');
+                
                 try {
                   const MethodChannel mainChannel = MethodChannel('com.v10.delivery/main_overlay');
                   final bool temPermissao = await mainChannel.invokeMethod('checkOverlayPermission');
                   
                   if (!temPermissao) {
                     await mainChannel.invokeMethod('requestOverlayPermission');
-                    print('⚠️ Solicitando permissão de overlay ao usuário...');
+                    
                   } else {
                     final mapToEncode = Map<String, dynamic>.from(rotaNovaMap);
                     
@@ -367,12 +367,12 @@ class SupabaseService {
                               final dataOsrm = jsonDecode(res.body);
                               final kmOsrm = (dataOsrm['routes'][0]['distance'] as num) / 1000.0;
                               mapToEncode['distancia'] = kmOsrm;
-                              print('✅ OSRM (REST): Distância real confirmada para o Overlay: $kmOsrm km');
+                              
                             }
                           }
                         }
                       } catch (e) {
-                        print('❌ Erro no cálculo OSRM (REST) para o Overlay: $e');
+                        if (kDebugMode) {  }
                       }
                     }
 
@@ -395,10 +395,10 @@ class SupabaseService {
                       mapToEncode['fimCliente'] = (fim['cliente'] ?? '').toString().replaceAll('*', '').trim();
 
                       if (rotaFiltrada.length > 1 && mapToEncode['inicioEndereco'] == mapToEncode['fimEndereco']) {
-                         print("⚠️ ALERTA: Início e Fim idênticos detectados. Verifique se a lista está correta.");
+                         
                       }
 
-                      print('🔍 DEBUG ROTA: Início=${mapToEncode['inicioCliente']} | Fim=${mapToEncode['fimCliente']}');
+                      
                       
                       final int coletas = rotaFiltrada.where((e) {
                         final t = (e['tipo'] ?? e['tipoServico'] ?? '').toString().toUpperCase();
@@ -442,14 +442,14 @@ class SupabaseService {
                         mapToEncode['km_total'] = mapToEncode['distancia'];
                       }
                       
-                      print('📦 OVERLAY DATA PREP -> Total KM Somado: ${mapToEncode['km_total']} | Fim: ${mapToEncode['fimEndereco']}');
+                      
                     }
 
-                    print('📦 PAYLOAD OVERLAY (REST): KM preparado = ${mapToEncode['distancia']}');
+                    
                     await _dispararOverlaySeguro(mapToEncode);
                   }
                 } catch (e) {
-                  print('❌ Erro ao disparar Overlay Nativo (REST): $e');
+                  if (kDebugMode) { print('❌ Erro ao disparar Overlay Nativo (REST): $e'); }
                 }
               }
             }
@@ -460,7 +460,7 @@ class SupabaseService {
           hasReceivedData = true;
         }
       } catch (e) {
-        print('⚡ FALLBACK: Erro ao buscar via REST: $e');
+        if (kDebugMode) { print('⚡ FALLBACK: Erro ao buscar via REST: $e'); }
         if (!controller.isClosed) {
           controller.addError(e);
         }
@@ -469,7 +469,7 @@ class SupabaseService {
 
     // Inicia a escuta do Stream do Realtime
     void startRealtime() {
-      print('⚡ REALTIME: Iniciando escuta da stream de entregas...');
+      
       final dataLimiteDart = DateTime.now().subtract(const Duration(days: 7));
       realtimeSubscription = client
           .from('entregas')
@@ -521,7 +521,7 @@ class SupabaseService {
             (dados) async {
               // Convertendo de List<Map<dynamic, dynamic>> para List<Map<String, dynamic>>
               final mapped = dados.map((linha) => Map<String, dynamic>.from(linha)).toList();
-              print('⚡ REALTIME: Dados recebidos via WebSocket. Qtd: ${mapped.length}');
+              
               
               if (mapped.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
                 await AudioService.playFinal();
@@ -537,7 +537,7 @@ class SupabaseService {
 
                 if (temRotaNova) {
                   await NotificationService.showRotaRecebida(); // Dispara notificação com som 'chama'
-                  print('✅ Rota via REALTIME detectada.');
+                  
                 }
                 _idsRotasConhecidas = idsAtuais;
               }
@@ -552,12 +552,12 @@ class SupabaseService {
               }
             },
             onError: (error) {
-              print('⚡ REALTIME: Erro na stream: $error');
+              if (kDebugMode) { print('⚡ REALTIME: Erro na stream: $error'); }
               // Se falhar o Realtime, aciona o fallback imediatamente
               fetchViaRest();
             },
             onDone: () {
-              print('⚡ REALTIME: Stream finalizada.');
+              
             }
           );
     }
@@ -568,7 +568,7 @@ class SupabaseService {
     // Configura o timer de fallback de 5 segundos
     fallbackTimer = Timer(const Duration(seconds: 5), () {
       if (!hasReceivedData) {
-        print('⚡ SYSTEM: Stream Realtime não respondeu em 5s. Acionando Polling de Segurança.');
+        
         fetchViaRest();
       }
     });
@@ -581,12 +581,12 @@ class SupabaseService {
       final currentStateLog = '$state|$isConnected';
       if (ultimoEstadoLog != currentStateLog) {
         ultimoEstadoLog = currentStateLog;
-        print('⚡ SOCKET MONITOR: Estado da conexão = $state (conectado = $isConnected)');
+        
       }
       
       if (!isConnected) {
         if (ultimoEstadoLog != 'disconnected_fetch') {
-          print('⚡ SOCKET MONITOR: Socket desconectado. Atualizando via Polling.');
+          
           ultimoEstadoLog = 'disconnected_fetch';
         }
         fetchViaRest();
@@ -596,7 +596,7 @@ class SupabaseService {
     startRealtime();
 
     controller.onCancel = () {
-      print('⚡ SYSTEM: Cancelando inscrições e timers da stream de entregas.');
+      
       realtimeSubscription?.cancel();
       realtimeSubscription = null;
       fallbackTimer?.cancel();
@@ -619,7 +619,7 @@ class SupabaseService {
       }
       return motorista;
     } catch (e) {
-      print('Erro ao obter motorista: $e');
+      if (kDebugMode) { print('Erro ao obter motorista: $e'); }
       return null;
     }
   }
@@ -656,7 +656,7 @@ class SupabaseService {
 
       return publicUrl;
     } catch (e) {
-      print('Erro ao atualizar foto: $e');
+      if (kDebugMode) { print('Erro ao atualizar foto: $e'); }
       throw Exception('Não foi possível atualizar a foto.');
     }
   }
@@ -671,11 +671,11 @@ class SupabaseService {
 
   // Verifica saúde da conexão e tenta reconectar silenciosamente
   static void checkAndReconnect() {
-    print('⚡ SYSTEM: Verificando saúde do Supabase Realtime (Lifecycle Resumed)...');
+    
     try {
       final isConnected = client.realtime.isConnected;
       if (!isConnected) {
-        print('⚡ SYSTEM: Supabase Realtime desconectado. Forçando reconexão...');
+        
         // O Supabase tenta reconectar automaticamente
         // Não é necessário chamar connect manualmente (membro interno).
         
@@ -685,10 +685,10 @@ class SupabaseService {
           iniciarEscutaNovasEntregas(currentMotoristaId!);
         }
       } else {
-        print('⚡ SYSTEM: Supabase Realtime já está conectado.');
+        
       }
     } catch (e) {
-      print('⚡ SYSTEM: Erro ao verificar conexão: $e');
+      if (kDebugMode) { print('⚡ SYSTEM: Erro ao verificar conexão: $e'); }
     }
   }
 
@@ -699,15 +699,15 @@ class SupabaseService {
         : (double.tryParse(kmParaVerificar.toString()) ?? 0.0);
     
     if (kmConvertidoParaVerificar <= 0.0) {
-      print("⚠️ OVERLAY BLOQUEADO (Gatekeeper): KM ainda não calculado ou zerado.");
+      
       return; 
     }
     
     final String jsonPayload = jsonEncode(payload);
     const MethodChannel mainChannel = MethodChannel('com.v10.delivery/main_overlay');
     
-    print('Disparando Overlay Nativo...');
+    
     await mainChannel.invokeMethod('showOverlay', {'rota_json': jsonPayload});
-    print('✅ Overlay nativo (Isolate) acionado com sucesso e KM validado!');
+    
   }
 }

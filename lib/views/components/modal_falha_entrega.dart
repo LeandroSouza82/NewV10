@@ -1,5 +1,5 @@
-// ignore_for_file: avoid_print
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
@@ -183,27 +183,37 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
 
       if (mounted) Navigator.pop(context, true);
     } on PostgrestException catch (e) {
-      print('ERRO SUPABASE (BANCO): $e');
+      if (kDebugMode) {
+        print('ERRO SUPABASE (BANCO): $e');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Erro ao salvar no banco: ${e.message}'), backgroundColor: Colors.redAccent,
         ));
       }
     } on StorageException catch (e) {
-      print('ERRO SUPABASE (STORAGE): $e');
+      if (kDebugMode) {
+        print('ERRO SUPABASE (STORAGE): $e');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Erro ao enviar arquivo: ${e.message}'), backgroundColor: Colors.redAccent,
         ));
       }
     } on SocketException catch (e) {
-      print('ERRO DE REDE: $e');
+      if (kDebugMode) {
+        print('ERRO DE REDE: $e');
+      }
       await _salvarOfflineECompartilhar(entregaId, tempImagePath, motivo, observacaoFinal, motoristaNome);
     } on TimeoutException catch (e) {
-      print('ERRO DE TIMEOUT: $e');
+      if (kDebugMode) {
+        print('ERRO DE TIMEOUT: $e');
+      }
       await _salvarOfflineECompartilhar(entregaId, tempImagePath, motivo, observacaoFinal, motoristaNome);
     } catch (e) {
-      print('ERRO GENERICO: $e');
+      if (kDebugMode) {
+        print('ERRO GENERICO: $e');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Erro ao salvar: $e'), backgroundColor: Colors.redAccent,

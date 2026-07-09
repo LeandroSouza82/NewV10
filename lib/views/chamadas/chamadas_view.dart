@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/chamada_model.dart';
@@ -32,7 +33,7 @@ class _ChamadasViewState extends State<ChamadasView> {
         );
       }
     } catch (e) {
-      debugPrint('Erro ao verificar permissão: $e');
+      if (kDebugMode) { debugPrint('Erro ao verificar permissão: $e'); }
     }
   }
 

@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -77,7 +76,7 @@ class DistanciaService {
     if (_isFetching) {
       // Mutex travado: emite fallback imediato para as novas entregas
       // evitando que o badge de distância fique preso em "..."
-      print('⚡ MUTEX OCUPADO: emitindo fallback geodésico para novas entregas.');
+      
       _emitirFallbackImediato();
       return;
     }
@@ -207,7 +206,7 @@ class DistanciaService {
   ///   • try/finally garante unlock em qualquer caminho de saída
   Future<void> _chamarOsrmSeguro(double lat, double lng) async {
     if (_isFetching) {
-      print('🔒 TRAVA CONCORRÊNCIA: Request OSRM já em andamento. Ignorando.');
+      
       return;
     }
 
@@ -254,10 +253,9 @@ class DistanciaService {
       if (!usouFallback) {
         _ultimoLat = lat;
         _ultimoLng = lng;
-        print('✅ OSRM: todas as distâncias confirmadas. Referência avançada.');
+        
       } else {
-        print('🔄 FALLBACK VOLÁTIL: cache vazio preservado. '
-            'OSRM será retentado no próximo ciclo GPS.');
+
       }
 
       // Emite para a UI via ValueNotifier
@@ -265,7 +263,7 @@ class DistanciaService {
     } catch (e) {
       // Erro inesperado no loop (ex: CancelledException do stream)
       // → Emite fallback para que a UI não fique travada em "..."
-      print('🚨 OSRM loop error: $e — emitindo fallback geodésico.');
+      if (kDebugMode) { print('🚨 OSRM loop error: $e — emitindo fallback geodésico.'); }
       _emitirFallbackImediato();
     } finally {
       _cancelarWatchdog();
@@ -372,8 +370,10 @@ class DistanciaService {
     _cancelarWatchdog();
     _watchdogTimer = Timer(_timeoutMutex, () {
       if (_isFetching) {
-        print('⏰ WATCHDOG: Mutex travado além de ${_timeoutMutex.inSeconds}s. '
-            'Forçando desbloqueio e emitindo fallback geodésico.');
+        if (kDebugMode) {
+          print('⏰ WATCHDOG: Mutex travado além de ${_timeoutMutex.inSeconds}s. '
+              'Forçando desbloqueio e emitindo fallback geodésico.');
+        }
         _isFetching = false;
         _emitirFallbackImediato();
       }
@@ -437,9 +437,9 @@ class DistanciaService {
         }
       }
     } on TimeoutException catch (e) {
-      print('⏱️ OSRM timeout: $e — fallback volátil (cache preservado vazio).');
+      if (kDebugMode) { print('⏱️ OSRM timeout: $e — fallback volátil (cache preservado vazio).'); }
     } catch (e) {
-      print('⚠️ OSRM falhou: $e — fallback volátil (cache preservado vazio).');
+      if (kDebugMode) { print('⚠️ OSRM falhou: $e — fallback volátil (cache preservado vazio).'); }
     }
 
     // Fallback volátil: distância geodésica WGS-84 × 1.45.

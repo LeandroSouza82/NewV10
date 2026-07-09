@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -105,7 +106,7 @@ class _ScannerViewState extends State<ScannerView> {
         final int sizeInBytes = await file.length();
         final double sizeInKb = sizeInBytes / 1024;
         
-        debugPrint('Foto capturada e comprimida! Tamanho: ${sizeInKb.toStringAsFixed(2)} KB');
+        
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -120,7 +121,7 @@ class _ScannerViewState extends State<ScannerView> {
         }
       }
     } catch (e) {
-      debugPrint('Erro ao capturar foto: $e');
+      if (kDebugMode) { debugPrint('Erro ao capturar foto: $e'); }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

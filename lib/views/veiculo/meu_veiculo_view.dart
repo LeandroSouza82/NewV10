@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/app_colors.dart';
@@ -54,7 +55,7 @@ class _MeuVeiculoViewState extends State<MeuVeiculoView> {
         });
       }
     } catch (e) {
-      debugPrint('Erro ao buscar veículo: $e');
+      if (kDebugMode) { debugPrint('Erro ao buscar veículo: $e'); }
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -74,7 +75,7 @@ class _MeuVeiculoViewState extends State<MeuVeiculoView> {
       
       await _carregarVeiculo();
     } catch (e) {
-      debugPrint('Erro ao atualizar hodômetro: $e');
+      if (kDebugMode) { debugPrint('Erro ao atualizar hodômetro: $e'); }
     }
   }
 
@@ -120,7 +121,7 @@ class _MeuVeiculoViewState extends State<MeuVeiculoView> {
         }
       }
     } catch (e) {
-      debugPrint('Erro ao salvar abastecimento: $e');
+      if (kDebugMode) { debugPrint('Erro ao salvar abastecimento: $e'); }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao registrar abastecimento: $e'), backgroundColor: Colors.redAccent),
@@ -160,7 +161,7 @@ class _MeuVeiculoViewState extends State<MeuVeiculoView> {
         );
       }
     } catch (e) {
-      debugPrint('Erro ao reiniciar ciclo: $e');
+      if (kDebugMode) { debugPrint('Erro ao reiniciar ciclo: $e'); }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -556,9 +557,9 @@ class _MeuVeiculoViewState extends State<MeuVeiculoView> {
       stream: queryStream,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          debugPrint('Dados do Supabase (ABASTECIMENTOS): ${snapshot.data}');
+          
         } else if (snapshot.hasError) {
-          debugPrint('Erro no Stream do Supabase (ABASTECIMENTOS): ${snapshot.error}');
+          if (kDebugMode) { debugPrint('Erro no Stream do Supabase (ABASTECIMENTOS): ${snapshot.error}'); }
         }
         
         if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
@@ -852,7 +853,7 @@ class _MeuVeiculoViewState extends State<MeuVeiculoView> {
       
       await _carregarVeiculo();
     } catch (e) {
-      debugPrint('Erro ao cadastrar veículo: $e');
+      if (kDebugMode) { debugPrint('Erro ao cadastrar veículo: $e'); }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao cadastrar veículo: $e'), backgroundColor: Colors.redAccent),

@@ -1,6 +1,5 @@
-// ignore_for_file: avoid_print
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'signature_pad.dart';
 import 'package:image_picker/image_picker.dart';
@@ -111,7 +110,9 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
         strokeColor: Colors.white,
       );
     } catch (e) {
-      print('Erro ao exportar assinatura: $e');
+      if (kDebugMode) {
+        print('Erro ao exportar assinatura: $e');
+      }
       return null;
     }
   }
@@ -266,7 +267,9 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
 
       if (mounted) Navigator.pop(context, true);
     } on PostgrestException catch (e) {
-      print('ERRO SUPABASE (BANCO): $e');
+      if (kDebugMode) {
+        print('ERRO SUPABASE (BANCO): $e');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Erro ao salvar no banco: ${e.message}'),
@@ -274,7 +277,9 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
         ));
       }
     } on StorageException catch (e) {
-      print('ERRO SUPABASE (STORAGE): $e');
+      if (kDebugMode) {
+        print('ERRO SUPABASE (STORAGE): $e');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Erro ao enviar arquivo: ${e.message}'),
@@ -282,15 +287,21 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
         ));
       }
     } on SocketException catch (e) {
-      print('ERRO DE REDE: $e');
+      if (kDebugMode) {
+        print('ERRO DE REDE: $e');
+      }
       await _salvarOfflineECompartilhar(
           entregaId, tempImagePath, recebedor, observacaoFinal, motoristaNome);
     } on TimeoutException catch (e) {
-      print('ERRO DE TIMEOUT: $e');
+      if (kDebugMode) {
+        print('ERRO DE TIMEOUT: $e');
+      }
       await _salvarOfflineECompartilhar(
           entregaId, tempImagePath, recebedor, observacaoFinal, motoristaNome);
     } catch (e) {
-      print('ERRO GENERICO: $e');
+      if (kDebugMode) {
+        print('ERRO GENERICO: $e');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Erro ao salvar: $e'),

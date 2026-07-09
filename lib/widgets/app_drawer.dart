@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
@@ -133,7 +134,7 @@ class AppDrawer extends StatelessWidget {
                             
                             // 2. Erro no banco ou sem dados
                             if (snapshot.hasError || !snapshot.hasData) {
-                              debugPrint('🕵️ ERRO OU SEM DADOS: ${snapshot.error}');
+                              if (kDebugMode) { debugPrint('🕵️ ERRO OU SEM DADOS: ${snapshot.error}'); }
                               return const Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
@@ -145,7 +146,7 @@ class AppDrawer extends StatelessWidget {
                             }
 
                             final registros = snapshot.data!;
-                            debugPrint('🕵️ SUCESSO: O banco retornou ${registros.length} entregas para o Drawer!');
+                            
                             
                             // Filtro de data feito direto no aplicativo
                             final agora = DateTime.now().toLocal();
@@ -200,7 +201,7 @@ class AppDrawer extends StatelessWidget {
                               }
                             }
 
-                            debugPrint('🕵️ PLACAR: Feitas: $totalFeitas | Pend: $totalPendentes | Falha: $totalFalhas');
+                            
 
                             return Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,

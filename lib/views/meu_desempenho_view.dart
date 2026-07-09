@@ -40,7 +40,7 @@ class MeuDesempenhoView extends StatelessWidget {
       final tipo = (e['tipo'] ?? '').toString().toLowerCase().trim();
 
       // LOG ESPIÃO: confirma o valor exato que chega do banco
-      debugPrint('🕵️ TIPO ENCONTRADO NO BANCO: "$tipo"');
+      
 
       // Contagem de resultado
       if (status == 'concluido' || status == 'entregue' || status == 'arquivado') {

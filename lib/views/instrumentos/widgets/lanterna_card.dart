@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:torch_light/torch_light.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -66,7 +67,7 @@ class _LanternaCardState extends State<LanternaCard> {
         setState(() => _isOn = true);
       }
     } catch (e) {
-      debugPrint('Erro na lanterna: $e');
+      if (kDebugMode) { debugPrint('Erro na lanterna: $e'); }
       if (mounted) {
         setState(() => _isOn = false);
         ScaffoldMessenger.of(context).showSnackBar(

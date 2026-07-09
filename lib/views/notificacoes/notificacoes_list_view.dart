@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/app_colors.dart';
 import '../../services/supabase_service.dart';
@@ -52,7 +53,7 @@ class _NotificacoesListViewState extends State<NotificacoesListView> {
           .eq('motorista_id', _motoristaId)
           .eq('lida', false);
     } catch (e) {
-      debugPrint('Erro ao marcar todas como lidas: $e');
+      if (kDebugMode) { debugPrint('Erro ao marcar todas como lidas: $e'); }
     }
   }
 
@@ -73,7 +74,7 @@ class _NotificacoesListViewState extends State<NotificacoesListView> {
           })
           .eq('id', id);
     } catch (e) {
-      debugPrint('Erro ao marcar como lida: $e');
+      if (kDebugMode) { debugPrint('Erro ao marcar como lida: $e'); }
     }
   }
 
