@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/app_colors.dart';
 
 class SuccessStatus extends StatelessWidget {
@@ -9,93 +11,6 @@ class SuccessStatus extends StatelessWidget {
     super.key,
     this.driverName = 'Leandro', // Preparado para receber do Supabase depois
   });
-
-  Future<void> _abrirModalDefinirBase(BuildContext context) async {
-    final TextEditingController enderecoController = TextEditingController();
-    bool isLoading = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                top: 24,
-                left: 24,
-                right: 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    "CRAVAR LOCAL DA EMPRESA",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: enderecoController,
-                    decoration: const InputDecoration(
-                      labelText: "Digite o novo endereço da base",
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.business),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green, // Mantém o padrão visual
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    onPressed: isLoading
-                        ? null
-                        : () async {
-                            if (enderecoController.text.trim().isEmpty) return;
-                            setState(() => isLoading = true);
-                            
-                            try {
-                              // Atualiza a coluna endereco_base usando o ID da Essenza Condomínios
-                              await Supabase.instance.client
-                                  .from('empresas')
-                                  .update({'endereco_base': enderecoController.text.trim()})
-                                  .eq('id', 'a575367d-f00f-48eb-b6d7-a5116fc2f2d5');
-                                  
-                              if (context.mounted) {
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Base atualizada com sucesso!'), backgroundColor: Colors.green),
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Erro ao salvar: $e'), backgroundColor: Colors.red),
-                                );
-                              }
-                            } finally {
-                              if (context.mounted) setState(() => isLoading = false);
-                            }
-                          },
-                    child: isLoading 
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text("SALVAR BASE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +99,53 @@ class SuccessStatus extends StatelessWidget {
             width: double.infinity,
             height: 60,
             child: ElevatedButton.icon(
-              onPressed: () => _abrirModalDefinirBase(context),
+              onPressed: () async {
+                try {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Buscando rota para a base...')),
+                  );
+
+                  // 1. Busca o endereço atualizado no banco
+                  final response = await Supabase.instance.client
+                      .from('empresas')
+                      .select('endereco_base')
+                      .eq('id', 'a575367d-f00f-48eb-b6d7-a5116fc2f2d5')
+                      .single();
+                  
+                  final String? endereco = response['endereco_base'];
+
+                  if (endereco != null && endereco.isNotEmpty) {
+                    // 2. Abre o GPS respeitando a preferência do usuário (Waze / Google Maps)
+                    final prefs = await SharedPreferences.getInstance();
+                    final navegador = prefs.getString('navegador_padrao') ?? 'maps';
+                    final enderecoCodificado = Uri.encodeComponent(endereco);
+
+                    Uri url;
+                    if (navegador == 'waze') {
+                      url = Uri.parse('https://waze.com/ul?q=$enderecoCodificado&navigate=yes');
+                    } else {
+                      url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$enderecoCodificado');
+                    }
+
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    } else {
+                      throw 'Falha ao abrir o mapa.';
+                    }
+                  } else {
+                    throw 'Endereço da base não configurado.';
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Erro: Base não configurada. Vá no menu para configurar.'), 
+                        backgroundColor: Colors.red
+                      ),
+                    );
+                  }
+                }
+              },
               icon: const Icon(Icons.business_rounded, color: AppColors.textWhite),
               label: const Text(
                 'RETORNAR PARA A EMPRESA',
