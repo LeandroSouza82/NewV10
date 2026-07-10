@@ -73,16 +73,12 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
   @override
   void didUpdateWidget(covariant DraggableRouteList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Reconcilia o estado interno quando o Stream emite dados novos
-    if (widget.rotasIniciais.length != oldWidget.rotasIniciais.length ||
-        widget.rotasIniciais.toString() != oldWidget.rotasIniciais.toString()) {
-      setState(() {
-        rotas = List.from(widget.rotasIniciais);
-      });
-      // Atualiza o serviço com a nova lista de entregas
-      DistanciaService.instance.atualizarEntregas(rotas);
-      ordenarPorDistancia();
-    }
+    setState(() {
+      rotas = List.from(widget.rotasIniciais);
+    });
+    // Atualiza o serviço com a nova lista de entregas
+    DistanciaService.instance.atualizarEntregas(rotas);
+    ordenarPorDistancia();
   }
 
   @override
@@ -163,12 +159,8 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
     );
 
     if (sucesso == true) {
-      setState(() {
-        rotas.removeWhere((item) => item['id'] == rota['id']);
-      });
-      DistanciaService.instance.atualizarEntregas(rotas);
-      DistanciaService.instance.forcarRecalculoImediato();
-      ordenarPorDistancia(); // Gatilho B: Ao finalizar entrega
+      // O Supabase atualizará o Stream e enviará a nova lista,
+      // não faremos a remoção local para evitar o bug de UI Vanishing.
     }
   }
 
@@ -189,12 +181,8 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
     );
 
     if (sucesso == true) {
-      setState(() {
-        rotas.removeWhere((item) => item['id'] == rota['id']);
-      });
-      DistanciaService.instance.atualizarEntregas(rotas);
-      DistanciaService.instance.forcarRecalculoImediato();
-      ordenarPorDistancia(); // Gatilho B: Ao falhar entrega
+      // O Supabase atualizará o Stream e enviará a nova lista,
+      // não faremos a remoção local para evitar o bug de UI Vanishing.
     }
   }
 
