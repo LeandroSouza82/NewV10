@@ -634,11 +634,9 @@ class SupabaseService {
   }
 
   static String gerarMensagemGestor(Map<String, dynamic> entrega) {
-    // Puxa o aviso do gestor do banco (garantindo que não seja nulo)
-    final avisoGestor = entrega['aviso_gestor'] ?? 'Sem avisos';
-    
-    // Puxa o que foi entregue (campo que você mencionou)
-    final conteudoEntrega = entrega['conteudo_entregue'] ?? 'Não especificado';
+    // Pegamos o texto que o gestor digitou no card (aviso_gestor)
+    // e mapeamos para a variável 'conteudo'
+    final conteudo = entrega['aviso_gestor'] ?? 'Não especificado';
 
     return '''
 ------------- *ENTREGA* -------------
@@ -648,11 +646,10 @@ class SupabaseService {
 *Obs:* ${entrega['observacao'] ?? 'Nenhuma'}
 *Cliente:* ${entrega['cliente']}
 *Endereco:* ${entrega['endereco']}
-*Aviso do Gestor:* $avisoGestor
-*Conteúdo Entregue:* $conteudoEntrega
+*Conteúdo da Entrega:* $conteudo
 *Motorista:* ${entrega['motorista']}
 *Hora:* ${entrega['hora']}
 *Dia:* ${entrega['data']}
-'''.trim();
+''';
   }
 }
