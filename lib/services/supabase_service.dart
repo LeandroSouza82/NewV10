@@ -635,22 +635,61 @@ class SupabaseService {
     print('✅ Overlay nativo (Isolate) acionado com sucesso e KM validado!');
   }
 
-  static String gerarMensagemGestor(Map<String, dynamic> entrega) {
-    // A prioridade é a coluna 'obs', mas mantemos o fallback por segurança
-    final conteudo = entrega['obs'] ?? entrega['observacoes'] ?? 'Sem conteúdo informado';
+  static String formatarMensagemWhatsApp(Map<String, dynamic> entrega) {
+    final statusRaw = (entrega['status'] ?? '').toString().toLowerCase();
+    final cliente = entrega['cliente'] ?? 'Não especificado';
+    final endereco = entrega['endereco'] ?? 'Não especificado';
+    final motorista = entrega['motorista'] ?? 'Não especificado';
+    final hora = entrega['hora'] ?? '';
+    final data = entrega['data'] ?? '';
+    
+    // Trata 'obs' ou 'observacoes' com fallback seguro
+    String obsFinal = entrega['obs'] ?? entrega['observacoes'] ?? 'Nenhuma';
+    
+    final conteudo = entrega['conteudo'] ?? 'Sem conteúdo informado';
+    final motivo = entrega['motivo'] ?? 'Nenhuma';
+    final entreguePor = entrega['entregue_por'] ?? 'Não informado';
+
+    String statusStr;
+    String infoEspecifica = '';
+
+    if (statusRaw == 'concluido') {
+      statusStr = '✅ Entregue';
+      
+      // Se o usuário selecionou 'Ata Registrada' ao concluir, 
+      // esse valor deve entrar automaticamente no campo 'Observações:' se estiver em branco ou padrão
+      if (entreguePor == 'Ata Registrada' && (obsFinal == 'Nenhuma' || obsFinal.isEmpty)) {
+        obsFinal = 'Ata Registrada';
+      }
+      
+      infoEspecifica = '''
+*Entregue por:* $entreguePor
+*Observações:* $obsFinal
+*Conteúdo:* $conteudo''';
+    } else if (statusRaw == 'falha') {
+      statusStr = '❌ Falha';
+      infoEspecifica = '''
+*Motivo:* $motivo
+*Observações:* $obsFinal
+*Conteúdo:* $conteudo''';
+    } else {
+      // Status Outros
+      statusStr = entrega['status'] ?? 'Outros';
+      infoEspecifica = '''
+*Observações:* $obsFinal
+*Conteúdo:* $conteudo''';
+    }
 
     return '''
 ------------- *ENTREGA* -------------
 
-*Status:* ${entrega['status'] == 'concluido' ? '✅ Concluído' : '❌ Falha'}
-*Motivo:* ${entrega['motivo'] ?? 'Nenhuma'}
-*Obs:* ${entrega['observacao_entrega'] ?? 'Nenhuma'}
-*Cliente:* ${entrega['cliente']}
-*Endereco:* ${entrega['endereco']}
-*Conteúdo da Entrega:* $conteudo
-*Motorista:* ${entrega['motorista']}
-*Hora:* ${entrega['hora']}
-*Dia:* ${entrega['data']}
-''';
+*Status:* $statusStr
+$infoEspecifica
+*Cliente:* $cliente
+*Endereco:* $endereco
+*Motorista:* $motorista
+*Hora:* $hora
+*Dia:* $data
+'''.trim();
   }
 }

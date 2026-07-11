@@ -137,14 +137,13 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
             ? '${_recebedorSelecionado ?? ''} $textoDigitado'.trim()
             : (_recebedorSelecionado ?? 'Nao informado'));
 
-    return SupabaseService.gerarMensagemGestor({
+    return SupabaseService.formatarMensagemWhatsApp({
       'status': 'concluido',
-      'motivo': recebedorFinal,
-      'observacao_entrega': observacaoFinal,
+      'entregue_por': recebedorFinal,
+      'obs': observacaoFinal,
       'cliente': widget.clienteNome,
       'endereco': widget.endereco,
-      'obs': widget.rota['obs'],
-      'observacoes': widget.rota['observacoes'],
+      'conteudo': widget.rota['obs'] ?? widget.rota['observacoes'] ?? 'Sem conteúdo informado',
       'motorista': nomeMot,
       'hora': horas,
       'data': '$diaExtenso $dataFormatada',

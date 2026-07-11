@@ -88,14 +88,13 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
         ? 'Nenhuma' 
         : _descricaoController.text.trim();
 
-    return SupabaseService.gerarMensagemGestor({
+    return SupabaseService.formatarMensagemWhatsApp({
       'status': 'falha',
       'motivo': _motivoSelecionado ?? 'Não informado',
-      'observacao_entrega': textoObs,
+      'obs': textoObs,
       'cliente': widget.clienteNome,
       'endereco': widget.endereco,
-      'obs': widget.rota['obs'],
-      'observacoes': widget.rota['observacoes'],
+      'conteudo': widget.rota['obs'] ?? widget.rota['observacoes'] ?? 'Sem conteúdo informado',
       'motorista': nomeMot,
       'hora': horas,
       'data': '$diaExtenso $dataFormatada',
