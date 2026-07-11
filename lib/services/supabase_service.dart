@@ -280,14 +280,11 @@ class SupabaseService {
     if (currentMotoristaId == null) return const Stream.empty();
 
     final controller = StreamController<List<Map<String, dynamic>>>.broadcast();
-    StreamSubscription? realtimeSubscription;
-    Timer? fallbackTimer;
     Timer? pollingTimer;
-    bool hasReceivedData = false;
 
-    // Função para buscar os dados via REST
+    // ─── FONTE PRIMÁRIA: REST (filtra em_rota no SERVIDOR, sem limite de 1000) ───
     Future<void> fetchViaRest() async {
-      print('⚡ FALLBACK: Buscando entregas via REST...');
+      print('⚡ REST: Buscando entregas em_rota via REST...');
       try {
         final dataLimite = DateTime.now().toUtc().subtract(const Duration(days: 7)).toIso8601String();
 
@@ -296,7 +293,7 @@ class SupabaseService {
             .select()
             .eq('motorista_id', currentMotoristaId!)
             .gte('created_at', dataLimite)
-            .or('status.eq.pendente,status.eq.em_rota')
+            .eq('status', 'em_rota')
             .order('ordem_logistica', ascending: true);
         
         final list = dados.map((linha) {
@@ -309,11 +306,13 @@ class SupabaseService {
             'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
             'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
             'ordem_logistica': linha['ordem_logistica'],
+            'lat_coleta': linha['lat_coleta'] != null ? double.tryParse(linha['lat_coleta'].toString()) : null,
+            'lng_coleta': linha['lng_coleta'] != null ? double.tryParse(linha['lng_coleta'].toString()) : null,
           };
         }).toList();
         
         if (!controller.isClosed) {
-          print('⚡ FALLBACK: Dados REST recebidos com sucesso. Qtd: ${list.length}');
+          print('⚡ REST: Emitindo ${list.length} rotas em_rota. IDs: ${list.map((r) => r['id']).toList()}');
           
           if (list.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
             await AudioService.playFinal();
@@ -328,7 +327,7 @@ class SupabaseService {
             bool temRotaNova = idsAtuais.any((id) => !_idsRotasConhecidas.contains(id));
 
             if (temRotaNova) {
-              await NotificationService.showRotaRecebida(); // Dispara notificação com som 'chama'
+              await NotificationService.showRotaRecebida();
               print('✅ Rota nova via REST detectada.');
 
               final rotaNovaId = idsAtuais.firstWhere((id) => !_idsRotasConhecidas.contains(id));
@@ -454,120 +453,49 @@ class SupabaseService {
           }
 
           controller.add(list);
-          hasReceivedData = true;
         }
       } catch (e) {
-        print('⚡ FALLBACK: Erro ao buscar via REST: $e');
+        print('⚡ REST: Erro ao buscar via REST: $e');
         if (!controller.isClosed) {
           controller.addError(e);
         }
       }
     }
 
-    // Inicia a escuta do Stream do Realtime
-    void startRealtime() {
-      print('⚡ REALTIME: Iniciando escuta da stream de entregas...');
-      final dataLimiteDart = DateTime.now().subtract(const Duration(days: 7));
-      realtimeSubscription = client
-          .from('entregas')
-          .stream(primaryKey: ['id'])
-          .eq('motorista_id', currentMotoristaId!)
-          .map((dados) {
-            // Filtro local adicional
-            final filtered = dados
-                .where((linha) {
-                  final statusOk = (linha['status'] == 'pendente' || linha['status'] == 'em_rota');
-                  if (!statusOk) return false;
-                  
-                  final createdAtStr = linha['created_at'];
-                  if (createdAtStr != null) {
-                    final createdAtDate = DateTime.tryParse(createdAtStr.toString())?.toLocal();
-                    if (createdAtDate != null && createdAtDate.isBefore(dataLimiteDart)) {
-                      return false; // Ignora pendentes antigos demais
-                    }
-                  }
-                  return true;
-                })
-                .map((linha) {
-              return {
-                'id': linha['id'].toString(),
-                'tipo': linha['tipo'] ?? 'Sem Tipo',
-                'cliente': linha['cliente'] ?? 'Sem Cliente',
-                'endereco': linha['endereco'] ?? 'Sem Endereço',
-                'aviso': linha['observacoes'] ?? linha['obs'] ?? '',
-                'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
-                'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
-                'ordem_logistica': linha['ordem_logistica'],
-              };
-            }).toList();
-            // Ordenação local por ordem_logistica (Realtime não suporta .order())
-            filtered.sort((a, b) {
-              final oa = a['ordem_logistica'];
-              final ob = b['ordem_logistica'];
-              if (oa == null && ob == null) return 0;
-              if (oa == null) return 1;
-              if (ob == null) return -1;
-              return (oa as int).compareTo(ob as int);
-            });
-            return filtered;
-          })
-          .listen(
-            (dados) async {
-              // Convertendo de List<Map<dynamic, dynamic>> para List<Map<String, dynamic>>
-              final mapped = dados.map((linha) => Map<String, dynamic>.from(linha)).toList();
-              print('⚡ REALTIME: Dados recebidos via WebSocket. Qtd: ${mapped.length}');
-              
-              if (mapped.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
-                await AudioService.playFinal();
-              }
-
-              Set<String> idsAtuais = mapped.map((rota) => rota['id'].toString()).toSet();
-
-              if (_isPrimeiraBusca) {
-                _idsRotasConhecidas = idsAtuais;
-                _isPrimeiraBusca = false;
-              } else {
-                bool temRotaNova = idsAtuais.any((id) => !_idsRotasConhecidas.contains(id));
-
-                if (temRotaNova) {
-                  await NotificationService.showRotaRecebida(); // Dispara notificação com som 'chama'
-                  print('✅ Rota via REALTIME detectada.');
-                }
-                _idsRotasConhecidas = idsAtuais;
-              }
-              
-              hasReceivedData = true;
-              if (fallbackTimer != null) {
-                fallbackTimer!.cancel();
-                fallbackTimer = null;
-              }
-              if (!controller.isClosed) {
-                controller.add(mapped);
-              }
-            },
-            onError: (error) {
-              print('⚡ REALTIME: Erro na stream: $error');
-              // Se falhar o Realtime, aciona o fallback imediatamente
+    // ─── GATILHO REALTIME: Escuta mudanças e dispara re-fetch via REST ───
+    RealtimeChannel? realtimeChannel;
+    
+    void startRealtimeTrigger() {
+      print('⚡ REALTIME TRIGGER: Inscrevendo-se para mudanças na tabela entregas...');
+      realtimeChannel = client
+          .channel('entregas_changes_${currentMotoristaId}')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'entregas',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'motorista_id',
+              value: currentMotoristaId!,
+            ),
+            callback: (payload) {
+              print('⚡ REALTIME TRIGGER: Mudança detectada (${payload.eventType}). Re-buscando via REST...');
               fetchViaRest();
             },
-            onDone: () {
-              print('⚡ REALTIME: Stream finalizada.');
-            }
-          );
+          )
+          .subscribe((status, [error]) {
+            print('⚡ REALTIME TRIGGER: Status da inscrição = $status');
+          });
     }
 
     // Estado local para evitar Flood de logs
     String? ultimoEstadoLog;
 
-    // Configura o timer de fallback de 5 segundos
-    fallbackTimer = Timer(const Duration(seconds: 5), () {
-      if (!hasReceivedData) {
-        print('⚡ SYSTEM: Stream Realtime não respondeu em 5s. Acionando Polling de Segurança.');
-        fetchViaRest();
-      }
-    });
+    // ── EXECUÇÃO: REST imediato + Realtime como gatilho ──
+    fetchViaRest(); // Carrega dados imediatamente via REST (correto, filtrado no servidor)
+    startRealtimeTrigger(); // Escuta mudanças para re-fetch automático
 
-    // Polling de segurança a cada 15 segundos caso a conexão do socket não esteja aberta
+    // Polling de segurança a cada 15 segundos caso o socket desconecte
     pollingTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
       final state = client.realtime.connectionState;
       final isConnected = client.realtime.isConnected;
@@ -587,14 +515,12 @@ class SupabaseService {
       }
     });
 
-    startRealtime();
-
     controller.onCancel = () {
       print('⚡ SYSTEM: Cancelando inscrições e timers da stream de entregas.');
-      realtimeSubscription?.cancel();
-      realtimeSubscription = null;
-      fallbackTimer?.cancel();
-      fallbackTimer = null;
+      if (realtimeChannel != null) {
+        client.removeChannel(realtimeChannel!);
+        realtimeChannel = null;
+      }
       pollingTimer?.cancel();
       pollingTimer = null;
       controller.close();
