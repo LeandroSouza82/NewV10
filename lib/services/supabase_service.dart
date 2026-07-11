@@ -643,53 +643,57 @@ class SupabaseService {
     final hora = entrega['hora'] ?? '';
     final data = entrega['data'] ?? '';
     
-    // Trata 'obs' ou 'observacoes' com fallback seguro
-    String obsFinal = entrega['obs'] ?? entrega['observacoes'] ?? 'Nenhuma';
+    // A prioridade é a coluna 'obs', mas mantemos o fallback por segurança
+    final conteudo = entrega['obs'] ?? entrega['observacoes'] ?? 'Não informado';
     
-    final conteudo = entrega['conteudo'] ?? 'Sem conteúdo informado';
+    // Observação que o motorista digitou ao dar baixa/falha
+    final obsFinal = entrega['observacao_entrega'] ?? 'Nenhuma';
+    
     final motivo = entrega['motivo'] ?? 'Nenhuma';
-    final entreguePor = entrega['entregue_por'] ?? 'Não informado';
-
-    String statusStr;
-    String infoEspecifica = '';
+    final entreguePor = entrega['entregue_por'] ?? 'Motorista';
 
     if (statusRaw == 'concluido') {
-      statusStr = '✅ Entregue';
-      
-      // Se o usuário selecionou 'Ata Registrada' ao concluir, 
-      // esse valor deve entrar automaticamente no campo 'Observações:' se estiver em branco ou padrão
-      if (entreguePor == 'Ata Registrada' && (obsFinal == 'Nenhuma' || obsFinal.isEmpty)) {
-        obsFinal = 'Ata Registrada';
-      }
-      
-      infoEspecifica = '''
-*Entregue por:* $entreguePor
-*Observações:* $obsFinal
-*Conteúdo:* $conteudo''';
-    } else if (statusRaw == 'falha') {
-      statusStr = '❌ Falha';
-      infoEspecifica = '''
-*Motivo:* $motivo
-*Observações:* $obsFinal
-*Conteúdo:* $conteudo''';
-    } else {
-      // Status Outros
-      statusStr = entrega['status'] ?? 'Outros';
-      infoEspecifica = '''
-*Observações:* $obsFinal
-*Conteúdo:* $conteudo''';
-    }
-
-    return '''
+      return '''
 ------------- *ENTREGA* -------------
 
-*Status:* $statusStr
-$infoEspecifica
+*Status:* ✅ Entregue
+*Entregue por:* $entreguePor
+*Conteúdo:* $conteudo
 *Cliente:* $cliente
 *Endereco:* $endereco
 *Motorista:* $motorista
 *Hora:* $hora
 *Dia:* $data
 '''.trim();
+    } else if (statusRaw == 'falha') {
+      return '''
+------------- *ENTREGA* -------------
+
+*Status:* ❌ Falha
+*Motivo:* $motivo
+*Observações:* $obsFinal
+*Conteúdo:* $conteudo
+*Cliente:* $cliente
+*Endereco:* $endereco
+*Motorista:* $motorista
+*Hora:* $hora
+*Dia:* $data
+'''.trim();
+    } else {
+      // Status Outros
+      final statusStr = entrega['status'] ?? 'Outros';
+      return '''
+------------- *ENTREGA* -------------
+
+*Status:* $statusStr
+*Observações:* $obsFinal
+*Conteúdo:* $conteudo
+*Cliente:* $cliente
+*Endereco:* $endereco
+*Motorista:* $motorista
+*Hora:* $hora
+*Dia:* $data
+'''.trim();
+    }
   }
 }
