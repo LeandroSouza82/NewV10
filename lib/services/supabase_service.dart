@@ -310,6 +310,8 @@ class SupabaseService {
             'lng_coleta': linha['lng_coleta'] != null ? double.tryParse(linha['lng_coleta'].toString()) : null,
             'aviso_gestor': linha['aviso_gestor'],
             'conteudo_entregue': linha['conteudo_entregue'],
+            'obs': linha['obs'],
+            'observacoes': linha['observacoes'],
           };
         }).toList();
         
@@ -634,16 +636,15 @@ class SupabaseService {
   }
 
   static String gerarMensagemGestor(Map<String, dynamic> entrega) {
-    // Pegamos o texto que o gestor digitou no card (aviso_gestor)
-    // e mapeamos para a variável 'conteudo'
-    final conteudo = entrega['aviso_gestor'] ?? 'Não especificado';
+    // A prioridade é a coluna 'obs', mas mantemos o fallback por segurança
+    final conteudo = entrega['obs'] ?? entrega['observacoes'] ?? 'Sem conteúdo informado';
 
     return '''
 ------------- *ENTREGA* -------------
 
 *Status:* ${entrega['status'] == 'concluido' ? '✅ Concluído' : '❌ Falha'}
 *Motivo:* ${entrega['motivo'] ?? 'Nenhuma'}
-*Obs:* ${entrega['observacao'] ?? 'Nenhuma'}
+*Obs:* ${entrega['observacao_entrega'] ?? 'Nenhuma'}
 *Cliente:* ${entrega['cliente']}
 *Endereco:* ${entrega['endereco']}
 *Conteúdo da Entrega:* $conteudo
