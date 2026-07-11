@@ -88,19 +88,18 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
         ? 'Nenhuma' 
         : _descricaoController.text.trim();
 
-    final String tipoRaw = widget.tipo.isNotEmpty ? widget.tipo : (widget.rota['tipoServico']?.toString() ?? 'ENTREGA');
-    final tipoServicoStr = tipoRaw.toUpperCase();
-    final cabecalho = '------------- *$tipoServicoStr* -------------\n\n';
-
-    return '$cabecalho'
-        '*Status:* ❌ Falha\n'
-        '*Motivo:* ${_motivoSelecionado ?? 'Não informado'}\n'
-        '*Obs:* $textoObs\n'
-        '*Cliente:* ${widget.clienteNome}\n'
-        '*Endereco:* ${widget.endereco}\n'
-        '*Motorista:* $nomeMot\n'
-        '*Hora:* $horas\n'
-        '*Dia:* $diaExtenso $dataFormatada';
+    return SupabaseService.gerarMensagemGestor({
+      'status': 'falha',
+      'motivo': _motivoSelecionado ?? 'Não informado',
+      'observacao': textoObs,
+      'cliente': widget.clienteNome,
+      'endereco': widget.endereco,
+      'aviso_gestor': widget.rota['aviso_gestor'],
+      'conteudo_entregue': widget.rota['conteudo_entregue'],
+      'motorista': nomeMot,
+      'hora': horas,
+      'data': '$diaExtenso $dataFormatada',
+    });
   }
 
   Future<void> _confirmar() async {

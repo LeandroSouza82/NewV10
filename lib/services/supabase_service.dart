@@ -1,6 +1,6 @@
+// ignore_for_file: avoid_print
 
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'dart:io';
@@ -97,15 +97,15 @@ class SupabaseService {
 
   // Inicializa monitoramento do socket Realtime para diagnóstico de conexão
   static void initializeMonitoring() {
-    
+    print('⚡ SUPABASE MONITOR: Inicializando monitoramento do Socket Realtime...');
     client.realtime.onOpen(() {
-      
+      print('⚡ SOCKET EVENT: Conectado (Open)');
     });
     client.realtime.onClose((event) {
-      if (kDebugMode) { print('⚡ SOCKET EVENT: Desconectado (Closed). Evento: $event'); }
+      print('⚡ SOCKET EVENT: Desconectado (Closed). Evento: $event');
     });
     client.realtime.onError((error) {
-      if (kDebugMode) { print('⚡ SOCKET EVENT: Erro na conexão: $error'); }
+      print('⚡ SOCKET EVENT: Erro na conexão: $error');
     });
   }
 
@@ -125,7 +125,7 @@ class SupabaseService {
       ),
       callback: (payload) async {
         WidgetsFlutterBinding.ensureInitialized();
-        
+        print('🔔 Alteração de entrega recebida via Realtime: ${payload.newRecord}');
         
         final newRecord = payload.newRecord;
         final oldRecord = payload.oldRecord;
@@ -145,7 +145,7 @@ class SupabaseService {
                                  lifecycleState == AppLifecycleState.hidden;
             
             if (isBackground) {
-              
+              print('✅ Rota recebida em background. Exibindo notificacao local e disparando Overlay nativo...');
               await NotificationService.showRotaRecebida();
               
               try {
@@ -154,7 +154,7 @@ class SupabaseService {
                 
                 if (!temPermissao) {
                   await mainChannel.invokeMethod('requestOverlayPermission');
-                  
+                  print('⚠️ Solicitando permissão de overlay ao usuário...');
                 } else {
                   final mapToEncode = Map<String, dynamic>.from(newRecord);
                   
@@ -171,23 +171,23 @@ class SupabaseService {
                             final dataOsrm = jsonDecode(res.body);
                             final kmOsrm = (dataOsrm['routes'][0]['distance'] as num) / 1000.0;
                             mapToEncode['distancia'] = kmOsrm;
-                            
+                            print('✅ OSRM: Distância real confirmada para o Overlay: $kmOsrm km');
                           }
                         }
                       }
                     } catch (e) {
-                      if (kDebugMode) { print('❌ Erro no cálculo OSRM para o Overlay: $e'); }
+                      print('❌ Erro no cálculo OSRM para o Overlay: $e');
                     }
                   }
 
-                  
+                  print('📦 PAYLOAD OVERLAY: KM preparado = ${mapToEncode['distancia']}');
                   await _dispararOverlaySeguro(mapToEncode);
                 }
               } catch (e) {
-                if (kDebugMode) { print('❌ Erro ao disparar Overlay Nativo: $e'); }
+                print('❌ Erro ao disparar Overlay Nativo: $e');
               }
             } else {
-              
+              print('✅ Exibindo ChamadaCard popup no Foreground...');
               final contexto = navigatorKey.currentContext;
               if (contexto != null) {
                 final id = newRecord['id']?.toString() ?? '';
@@ -269,7 +269,7 @@ class SupabaseService {
 
   // Atualiza o status de uma entrega
   static Future<void> atualizarStatusEntrega(String entregaId, String novoStatus) async {
-    
+    print("AVISO: Tentando atualizar uma entrega para status: $novoStatus");
     await client
         .from('entregas')
         .update({'status': novoStatus})
@@ -280,14 +280,11 @@ class SupabaseService {
     if (currentMotoristaId == null) return const Stream.empty();
 
     final controller = StreamController<List<Map<String, dynamic>>>.broadcast();
-    StreamSubscription? realtimeSubscription;
-    Timer? fallbackTimer;
     Timer? pollingTimer;
-    bool hasReceivedData = false;
 
-    // Função para buscar os dados via REST
+    // ─── FONTE PRIMÁRIA: REST (filtra em_rota no SERVIDOR, sem limite de 1000) ───
     Future<void> fetchViaRest() async {
-      
+      print('⚡ REST: Buscando entregas em_rota via REST...');
       try {
         final dataLimite = DateTime.now().toUtc().subtract(const Duration(days: 7)).toIso8601String();
 
@@ -296,7 +293,7 @@ class SupabaseService {
             .select()
             .eq('motorista_id', currentMotoristaId!)
             .gte('created_at', dataLimite)
-            .or('status.eq.pendente,status.eq.em_rota')
+            .eq('status', 'em_rota')
             .order('ordem_logistica', ascending: true);
         
         final list = dados.map((linha) {
@@ -308,15 +305,16 @@ class SupabaseService {
             'aviso': linha['observacoes'] ?? linha['obs'] ?? '',
             'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
             'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
-            'lat_coleta': linha['lat_coleta'],
-            'lng_coleta': linha['lng_coleta'],
-            'endereco_coleta': linha['endereco_coleta'],
             'ordem_logistica': linha['ordem_logistica'],
+            'lat_coleta': linha['lat_coleta'] != null ? double.tryParse(linha['lat_coleta'].toString()) : null,
+            'lng_coleta': linha['lng_coleta'] != null ? double.tryParse(linha['lng_coleta'].toString()) : null,
+            'aviso_gestor': linha['aviso_gestor'],
+            'conteudo_entregue': linha['conteudo_entregue'],
           };
         }).toList();
         
         if (!controller.isClosed) {
-          
+          print('⚡ REST: Emitindo ${list.length} rotas em_rota. IDs: ${list.map((r) => r['id']).toList()}');
           
           if (list.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
             await AudioService.playFinal();
@@ -331,8 +329,8 @@ class SupabaseService {
             bool temRotaNova = idsAtuais.any((id) => !_idsRotasConhecidas.contains(id));
 
             if (temRotaNova) {
-              await NotificationService.showRotaRecebida(); // Dispara notificação com som 'chama'
-              
+              await NotificationService.showRotaRecebida();
+              print('✅ Rota nova via REST detectada.');
 
               final rotaNovaId = idsAtuais.firstWhere((id) => !_idsRotasConhecidas.contains(id));
               final rotaNovaMap = list.firstWhere((rota) => rota['id'].toString() == rotaNovaId);
@@ -343,14 +341,14 @@ class SupabaseService {
                                    lifecycleState == AppLifecycleState.hidden;
                                    
               if (isBackground) {
-                
+                print('I/flutter (12932): 🚀 DISPARANDO OVERLAY VIA REST/POLLING');
                 try {
                   const MethodChannel mainChannel = MethodChannel('com.v10.delivery/main_overlay');
                   final bool temPermissao = await mainChannel.invokeMethod('checkOverlayPermission');
                   
                   if (!temPermissao) {
                     await mainChannel.invokeMethod('requestOverlayPermission');
-                    
+                    print('⚠️ Solicitando permissão de overlay ao usuário...');
                   } else {
                     final mapToEncode = Map<String, dynamic>.from(rotaNovaMap);
                     
@@ -367,12 +365,12 @@ class SupabaseService {
                               final dataOsrm = jsonDecode(res.body);
                               final kmOsrm = (dataOsrm['routes'][0]['distance'] as num) / 1000.0;
                               mapToEncode['distancia'] = kmOsrm;
-                              
+                              print('✅ OSRM (REST): Distância real confirmada para o Overlay: $kmOsrm km');
                             }
                           }
                         }
                       } catch (e) {
-                        if (kDebugMode) {  }
+                        print('❌ Erro no cálculo OSRM (REST) para o Overlay: $e');
                       }
                     }
 
@@ -395,10 +393,10 @@ class SupabaseService {
                       mapToEncode['fimCliente'] = (fim['cliente'] ?? '').toString().replaceAll('*', '').trim();
 
                       if (rotaFiltrada.length > 1 && mapToEncode['inicioEndereco'] == mapToEncode['fimEndereco']) {
-                         
+                         print("⚠️ ALERTA: Início e Fim idênticos detectados. Verifique se a lista está correta.");
                       }
 
-                      
+                      print('🔍 DEBUG ROTA: Início=${mapToEncode['inicioCliente']} | Fim=${mapToEncode['fimCliente']}');
                       
                       final int coletas = rotaFiltrada.where((e) {
                         final t = (e['tipo'] ?? e['tipoServico'] ?? '').toString().toUpperCase();
@@ -442,14 +440,14 @@ class SupabaseService {
                         mapToEncode['km_total'] = mapToEncode['distancia'];
                       }
                       
-                      
+                      print('📦 OVERLAY DATA PREP -> Total KM Somado: ${mapToEncode['km_total']} | Fim: ${mapToEncode['fimEndereco']}');
                     }
 
-                    
+                    print('📦 PAYLOAD OVERLAY (REST): KM preparado = ${mapToEncode['distancia']}');
                     await _dispararOverlaySeguro(mapToEncode);
                   }
                 } catch (e) {
-                  if (kDebugMode) { print('❌ Erro ao disparar Overlay Nativo (REST): $e'); }
+                  print('❌ Erro ao disparar Overlay Nativo (REST): $e');
                 }
               }
             }
@@ -457,123 +455,49 @@ class SupabaseService {
           }
 
           controller.add(list);
-          hasReceivedData = true;
         }
       } catch (e) {
-        if (kDebugMode) { print('⚡ FALLBACK: Erro ao buscar via REST: $e'); }
+        print('⚡ REST: Erro ao buscar via REST: $e');
         if (!controller.isClosed) {
           controller.addError(e);
         }
       }
     }
 
-    // Inicia a escuta do Stream do Realtime
-    void startRealtime() {
-      
-      final dataLimiteDart = DateTime.now().subtract(const Duration(days: 7));
-      realtimeSubscription = client
-          .from('entregas')
-          .stream(primaryKey: ['id'])
-          .eq('motorista_id', currentMotoristaId!)
-          .map((dados) {
-            // Filtro local adicional
-            final filtered = dados
-                .where((linha) {
-                  final statusOk = (linha['status'] == 'pendente' || linha['status'] == 'em_rota');
-                  if (!statusOk) return false;
-                  
-                  final createdAtStr = linha['created_at'];
-                  if (createdAtStr != null) {
-                    final createdAtDate = DateTime.tryParse(createdAtStr.toString())?.toLocal();
-                    if (createdAtDate != null && createdAtDate.isBefore(dataLimiteDart)) {
-                      return false; // Ignora pendentes antigos demais
-                    }
-                  }
-                  return true;
-                })
-                .map((linha) {
-              return {
-                'id': linha['id'].toString(),
-                'tipo': linha['tipo'] ?? 'Sem Tipo',
-                'cliente': linha['cliente'] ?? 'Sem Cliente',
-                'endereco': linha['endereco'] ?? 'Sem Endereço',
-                'aviso': linha['observacoes'] ?? linha['obs'] ?? '',
-                'lat': linha['lat'] != null ? double.tryParse(linha['lat'].toString()) : null,
-                'lng': linha['lng'] != null ? double.tryParse(linha['lng'].toString()) : null,
-                'lat_coleta': linha['lat_coleta'],
-                'lng_coleta': linha['lng_coleta'],
-                'endereco_coleta': linha['endereco_coleta'],
-                'ordem_logistica': linha['ordem_logistica'],
-              };
-            }).toList();
-            // Ordenação local por ordem_logistica (Realtime não suporta .order())
-            filtered.sort((a, b) {
-              final oa = a['ordem_logistica'];
-              final ob = b['ordem_logistica'];
-              if (oa == null && ob == null) return 0;
-              if (oa == null) return 1;
-              if (ob == null) return -1;
-              return (oa as int).compareTo(ob as int);
-            });
-            return filtered;
-          })
-          .listen(
-            (dados) async {
-              // Convertendo de List<Map<dynamic, dynamic>> para List<Map<String, dynamic>>
-              final mapped = dados.map((linha) => Map<String, dynamic>.from(linha)).toList();
-              
-              
-              if (mapped.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
-                await AudioService.playFinal();
-              }
-
-              Set<String> idsAtuais = mapped.map((rota) => rota['id'].toString()).toSet();
-
-              if (_isPrimeiraBusca) {
-                _idsRotasConhecidas = idsAtuais;
-                _isPrimeiraBusca = false;
-              } else {
-                bool temRotaNova = idsAtuais.any((id) => !_idsRotasConhecidas.contains(id));
-
-                if (temRotaNova) {
-                  await NotificationService.showRotaRecebida(); // Dispara notificação com som 'chama'
-                  
-                }
-                _idsRotasConhecidas = idsAtuais;
-              }
-              
-              hasReceivedData = true;
-              if (fallbackTimer != null) {
-                fallbackTimer!.cancel();
-                fallbackTimer = null;
-              }
-              if (!controller.isClosed) {
-                controller.add(mapped);
-              }
-            },
-            onError: (error) {
-              if (kDebugMode) { print('⚡ REALTIME: Erro na stream: $error'); }
-              // Se falhar o Realtime, aciona o fallback imediatamente
+    // ─── GATILHO REALTIME: Escuta mudanças e dispara re-fetch via REST ───
+    RealtimeChannel? realtimeChannel;
+    
+    void startRealtimeTrigger() {
+      print('⚡ REALTIME TRIGGER: Inscrevendo-se para mudanças na tabela entregas...');
+      realtimeChannel = client
+          .channel('entregas_changes_$currentMotoristaId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'entregas',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'motorista_id',
+              value: currentMotoristaId!,
+            ),
+            callback: (payload) {
+              print('⚡ REALTIME TRIGGER: Mudança detectada (${payload.eventType}). Re-buscando via REST...');
               fetchViaRest();
             },
-            onDone: () {
-              
-            }
-          );
+          )
+          .subscribe((status, [error]) {
+            print('⚡ REALTIME TRIGGER: Status da inscrição = $status');
+          });
     }
 
     // Estado local para evitar Flood de logs
     String? ultimoEstadoLog;
 
-    // Configura o timer de fallback de 5 segundos
-    fallbackTimer = Timer(const Duration(seconds: 5), () {
-      if (!hasReceivedData) {
-        
-        fetchViaRest();
-      }
-    });
+    // ── EXECUÇÃO: REST imediato + Realtime como gatilho ──
+    fetchViaRest(); // Carrega dados imediatamente via REST (correto, filtrado no servidor)
+    startRealtimeTrigger(); // Escuta mudanças para re-fetch automático
 
-    // Polling de segurança a cada 15 segundos caso a conexão do socket não esteja aberta
+    // Polling de segurança a cada 15 segundos caso o socket desconecte
     pollingTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
       final state = client.realtime.connectionState;
       final isConnected = client.realtime.isConnected;
@@ -581,26 +505,24 @@ class SupabaseService {
       final currentStateLog = '$state|$isConnected';
       if (ultimoEstadoLog != currentStateLog) {
         ultimoEstadoLog = currentStateLog;
-        
+        print('⚡ SOCKET MONITOR: Estado da conexão = $state (conectado = $isConnected)');
       }
       
       if (!isConnected) {
         if (ultimoEstadoLog != 'disconnected_fetch') {
-          
+          print('⚡ SOCKET MONITOR: Socket desconectado. Atualizando via Polling.');
           ultimoEstadoLog = 'disconnected_fetch';
         }
         fetchViaRest();
       }
     });
 
-    startRealtime();
-
     controller.onCancel = () {
-      
-      realtimeSubscription?.cancel();
-      realtimeSubscription = null;
-      fallbackTimer?.cancel();
-      fallbackTimer = null;
+      print('⚡ SYSTEM: Cancelando inscrições e timers da stream de entregas.');
+      if (realtimeChannel != null) {
+        client.removeChannel(realtimeChannel!);
+        realtimeChannel = null;
+      }
       pollingTimer?.cancel();
       pollingTimer = null;
       controller.close();
@@ -619,7 +541,7 @@ class SupabaseService {
       }
       return motorista;
     } catch (e) {
-      if (kDebugMode) { print('Erro ao obter motorista: $e'); }
+      print('Erro ao obter motorista: $e');
       return null;
     }
   }
@@ -656,7 +578,7 @@ class SupabaseService {
 
       return publicUrl;
     } catch (e) {
-      if (kDebugMode) { print('Erro ao atualizar foto: $e'); }
+      print('Erro ao atualizar foto: $e');
       throw Exception('Não foi possível atualizar a foto.');
     }
   }
@@ -671,11 +593,11 @@ class SupabaseService {
 
   // Verifica saúde da conexão e tenta reconectar silenciosamente
   static void checkAndReconnect() {
-    
+    print('⚡ SYSTEM: Verificando saúde do Supabase Realtime (Lifecycle Resumed)...');
     try {
       final isConnected = client.realtime.isConnected;
       if (!isConnected) {
-        
+        print('⚡ SYSTEM: Supabase Realtime desconectado. Forçando reconexão...');
         // O Supabase tenta reconectar automaticamente
         // Não é necessário chamar connect manualmente (membro interno).
         
@@ -685,10 +607,10 @@ class SupabaseService {
           iniciarEscutaNovasEntregas(currentMotoristaId!);
         }
       } else {
-        
+        print('⚡ SYSTEM: Supabase Realtime já está conectado.');
       }
     } catch (e) {
-      if (kDebugMode) { print('⚡ SYSTEM: Erro ao verificar conexão: $e'); }
+      print('⚡ SYSTEM: Erro ao verificar conexão: $e');
     }
   }
 
@@ -699,15 +621,38 @@ class SupabaseService {
         : (double.tryParse(kmParaVerificar.toString()) ?? 0.0);
     
     if (kmConvertidoParaVerificar <= 0.0) {
-      
+      print("⚠️ OVERLAY BLOQUEADO (Gatekeeper): KM ainda não calculado ou zerado.");
       return; 
     }
     
     final String jsonPayload = jsonEncode(payload);
     const MethodChannel mainChannel = MethodChannel('com.v10.delivery/main_overlay');
     
-    
+    print('Disparando Overlay Nativo...');
     await mainChannel.invokeMethod('showOverlay', {'rota_json': jsonPayload});
+    print('✅ Overlay nativo (Isolate) acionado com sucesso e KM validado!');
+  }
+
+  static String gerarMensagemGestor(Map<String, dynamic> entrega) {
+    // Puxa o aviso do gestor do banco (garantindo que não seja nulo)
+    final avisoGestor = entrega['aviso_gestor'] ?? 'Sem avisos';
     
+    // Puxa o que foi entregue (campo que você mencionou)
+    final conteudoEntrega = entrega['conteudo_entregue'] ?? 'Não especificado';
+
+    return '''
+------------- *ENTREGA* -------------
+
+*Status:* ${entrega['status'] == 'concluido' ? '✅ Concluído' : '❌ Falha'}
+*Motivo:* ${entrega['motivo'] ?? 'Nenhuma'}
+*Obs:* ${entrega['observacao'] ?? 'Nenhuma'}
+*Cliente:* ${entrega['cliente']}
+*Endereco:* ${entrega['endereco']}
+*Aviso do Gestor:* $avisoGestor
+*Conteúdo Entregue:* $conteudoEntrega
+*Motorista:* ${entrega['motorista']}
+*Hora:* ${entrega['hora']}
+*Dia:* ${entrega['data']}
+'''.trim();
   }
 }

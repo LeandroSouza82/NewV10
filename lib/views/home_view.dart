@@ -26,8 +26,8 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
-  // Stream instanciado UMA vez — não recria conexão a cada build
-  Stream<List<Map<String, dynamic>>> _rotasStream = SupabaseService.getRotasAtivas();
+  // Stream instanciado SOMENTE após o ID do motorista estar garantido
+  Stream<List<Map<String, dynamic>>> _rotasStream = const Stream.empty();
   StreamSubscription? _connectivitySubscription;
 
   Map<String, dynamic>? _motorista;
@@ -160,6 +160,8 @@ class _HomeViewState extends State<HomeView> {
         setState(() {
           _motorista = dados;
           _isOnline = dados['esta_online'] ?? false;
+          // Inicializa o stream SOMENTE aqui, com o ID já garantido
+          _rotasStream = SupabaseService.getRotasAtivas();
         });
 
         if (_isOnline) {
@@ -359,21 +361,28 @@ class _HomeViewState extends State<HomeView> {
           StreamBuilder<List<Map<String, dynamic>>>(
             stream: _rotasStream,
             builder: (context, snapshot) {
-              // Atualiza o cache silenciosamente se houver dados novos
-              if (snapshot.hasData && !snapshot.hasError) {
-                // Compara para evitar regravações inúteis
-                if (jsonEncode(_entregasCacheadas) != jsonEncode(snapshot.data)) {
-                  _entregasCacheadas = snapshot.data!;
-                  Future.microtask(() => _salvarCacheEntregas(_entregasCacheadas));
-                }
+              // Atualiza o cache silenciosamente se houver dados novos do stream
+              if (snapshot.hasData && !snapshot.hasError && snapshot.data!.isNotEmpty) {
+                _entregasCacheadas = snapshot.data!;
+                Future.microtask(() => _salvarCacheEntregas(_entregasCacheadas));
               }
 
               final bool isOfflineErro = snapshot.hasError;
-              // Filtra entregas já finalizadas localmente para evitar efeito ioiô
-              final rotasAtivas = _entregasCacheadas
-                  .where((r) => !SyncService.idsFinalizadosLocalmente.contains(r['id'].toString()))
-                  .toList();
-              bool isFinalizado = rotasAtivas.isEmpty;
+              
+              // DEBUG: Rastreamento do fluxo de dados
+              print('🔍 STREAMBUILDER: connectionState=${snapshot.connectionState} | hasData=${snapshot.hasData} | dataLen=${snapshot.data?.length ?? 0} | cacheLen=${_entregasCacheadas.length} | hasError=${snapshot.hasError}');
+              
+              // Fonte Única de Verdade: usa os dados do stream diretamente
+              // Só usa cache como fallback quando OFFLINE (hasError = true)
+              final List<Map<String, dynamic>> rotasAtivas;
+              if (snapshot.hasData && !snapshot.hasError) {
+                rotasAtivas = snapshot.data!;
+              } else if (isOfflineErro && _entregasCacheadas.isNotEmpty) {
+                rotasAtivas = _entregasCacheadas;
+              } else {
+                rotasAtivas = [];
+              }
+              bool isFinalizado = rotasAtivas.isEmpty && snapshot.connectionState == ConnectionState.done;
               
               // Contagem Dinâmica
               int qtdEntregas = rotasAtivas.where((r) => r['tipo'].toString().toLowerCase() == 'entrega').length;

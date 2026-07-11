@@ -130,37 +130,25 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
 
     final nomeMot = motoristaNome.trim().isEmpty ? 'Leandro' : motoristaNome;
 
-    if (_isOutros) {
-      return '------------- *OUTROS/ATA* -------------\n\n'
-          '*Status:* ✅ Sucesso\n'
-          '*Observacoes:* ${_recebedorSelecionado ?? 'Ata Registrada'}\n'
-          '*Cliente:* ${widget.clienteNome}\n'
-          '*Endereco:* ${widget.endereco}\n'
-          '*Motorista:* $nomeMot\n'
-          '*Hora:* $horas\n'
-          '*Dia:* $diaExtenso $dataFormatada';
-    }
-
     final textoDigitado = _nomeObsController.text.trim();
-    final recebedorFinal = textoDigitado.isNotEmpty
-        ? '${_recebedorSelecionado ?? ''} $textoDigitado'.trim()
-        : (_recebedorSelecionado ?? 'Nao informado');
+    final recebedorFinal = _isOutros 
+        ? (_recebedorSelecionado ?? 'Ata Registrada')
+        : (textoDigitado.isNotEmpty
+            ? '${_recebedorSelecionado ?? ''} $textoDigitado'.trim()
+            : (_recebedorSelecionado ?? 'Nao informado'));
 
-    final isColeta = widget.tipo.toLowerCase() == 'coleta' ||
-        widget.tipo.toLowerCase() == 'recolha';
-
-    final String tipoRaw = widget.tipo.isNotEmpty ? widget.tipo : (widget.rota['tipoServico']?.toString() ?? 'ENTREGA');
-    final tipoServicoStr = isColeta ? 'COLETA' : tipoRaw.toUpperCase();
-    final cabecalho = '------------- *$tipoServicoStr* -------------\n\n';
-
-    return '$cabecalho'
-        '*Status:* ✅ Sucesso\n'
-        '*${isColeta ? 'Entregue por' : 'Recebido por'}:* $recebedorFinal\n'
-        '*Cliente:* ${widget.clienteNome}\n'
-        '*Endereco:* ${widget.endereco}\n'
-        '*Motorista:* $nomeMot\n'
-        '*Hora:* $horas\n'
-        '*Dia:* $diaExtenso $dataFormatada';
+    return SupabaseService.gerarMensagemGestor({
+      'status': 'concluido',
+      'motivo': recebedorFinal,
+      'observacao': observacaoFinal,
+      'cliente': widget.clienteNome,
+      'endereco': widget.endereco,
+      'aviso_gestor': widget.rota['aviso_gestor'],
+      'conteudo_entregue': widget.rota['conteudo_entregue'],
+      'motorista': nomeMot,
+      'hora': horas,
+      'data': '$diaExtenso $dataFormatada',
+    });
   }
 
   Future<void> _confirmar() async {
