@@ -84,21 +84,19 @@ class _ModalFalhaEntregaState extends State<ModalFalhaEntrega> {
     
     final nomeMot = motoristaNome.trim().isEmpty ? 'Leandro' : motoristaNome;
     
-    final textoObs = _descricaoController.text.trim().isEmpty 
-        ? 'Nenhuma' 
-        : _descricaoController.text.trim();
+    final textoObs = _descricaoController.text.trim();
 
     return SupabaseService.formatarMensagemWhatsApp({
       'status': 'falha',
       'motivo': _motivoSelecionado ?? 'Não informado',
-      'obs': textoObs,
+      'obs_motorista': textoObs,
+      'obs': widget.rota['obs'] ?? widget.rota['observacoes'] ?? 'Sem conteúdo informado',
       'cliente': widget.clienteNome,
       'endereco': widget.endereco,
-      'conteudo': widget.rota['obs'] ?? widget.rota['observacoes'] ?? 'Sem conteúdo informado',
       'motorista': nomeMot,
       'hora': horas,
       'data': '$diaExtenso $dataFormatada',
-    });
+    }, widget.tipo);
   }
 
   Future<void> _confirmar() async {

@@ -131,23 +131,18 @@ class _ModalBaixaEntregaState extends State<ModalBaixaEntrega> {
     final nomeMot = motoristaNome.trim().isEmpty ? 'Leandro' : motoristaNome;
 
     final textoDigitado = _nomeObsController.text.trim();
-    final recebedorFinal = _isOutros 
-        ? (_recebedorSelecionado ?? 'Ata Registrada')
-        : (textoDigitado.isNotEmpty
-            ? '${_recebedorSelecionado ?? ''} $textoDigitado'.trim()
-            : (_recebedorSelecionado ?? 'Nao informado'));
 
     return SupabaseService.formatarMensagemWhatsApp({
       'status': 'concluido',
-      'entregue_por': recebedorFinal,
-      'obs': observacaoFinal,
+      'cargo': _recebedorSelecionado ?? '',
+      'obs_motorista': textoDigitado,
+      'obs': widget.rota['obs'] ?? widget.rota['observacoes'] ?? 'Sem conteúdo informado',
       'cliente': widget.clienteNome,
       'endereco': widget.endereco,
-      'conteudo': widget.rota['obs'] ?? widget.rota['observacoes'] ?? 'Sem conteúdo informado',
       'motorista': nomeMot,
       'hora': horas,
       'data': '$diaExtenso $dataFormatada',
-    });
+    }, widget.tipo);
   }
 
   Future<void> _confirmar() async {

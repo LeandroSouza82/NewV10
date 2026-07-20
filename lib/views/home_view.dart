@@ -10,7 +10,6 @@ import '../widgets/info_card.dart';
 import '../widgets/success_status.dart';
 import '../widgets/draggable_route_list.dart';
 import '../services/supabase_service.dart';
-import '../services/sync_service.dart';
 import '../services/location_service.dart';
 import '../core/utils/location_utils.dart';
 

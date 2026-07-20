@@ -635,65 +635,77 @@ class SupabaseService {
     print('✅ Overlay nativo (Isolate) acionado com sucesso e KM validado!');
   }
 
-  static String formatarMensagemWhatsApp(Map<String, dynamic> entrega) {
-    final statusRaw = (entrega['status'] ?? '').toString().toLowerCase();
-    final cliente = entrega['cliente'] ?? 'Não especificado';
-    final endereco = entrega['endereco'] ?? 'Não especificado';
-    final motorista = entrega['motorista'] ?? 'Não especificado';
-    final hora = entrega['hora'] ?? '';
-    final data = entrega['data'] ?? '';
-    
-    // A prioridade é a coluna 'obs', mas mantemos o fallback por segurança
-    final conteudo = entrega['obs'] ?? entrega['observacoes'] ?? 'Não informado';
-    
-    // Observação que o motorista digitou ao dar baixa/falha
-    final obsFinal = entrega['observacao_entrega'] ?? 'Nenhuma';
-    
-    final motivo = entrega['motivo'] ?? 'Nenhuma';
-    final entreguePor = entrega['entregue_por'] ?? 'Motorista';
+  static String formatarMensagemWhatsApp(Map<String, dynamic> dados, String tipoModal) {
+    // --- Extração de dados ---
+    final String conteudoEntregue = (dados['obs'] ?? dados['observacoes'] ?? '').toString();
+    final String obsMotorista = (dados['obs_motorista'] ?? '').toString();
+    final String motivoOuCargo = (dados['motivo'] ?? dados['cargo'] ?? '').toString();
+    final String status = (dados['status'] ?? '').toString().toLowerCase();
 
-    if (statusRaw == 'concluido') {
-      return '''
-------------- *ENTREGA* -------------
+    final String cliente = (dados['cliente'] ?? 'Não especificado').toString();
+    final String endereco = (dados['endereco'] ?? 'Não especificado').toString();
+    final String motorista = (dados['motorista'] ?? 'Não especificado').toString();
+    final String hora = (dados['hora'] ?? '').toString();
+    final String data = (dados['data'] ?? '').toString();
 
-*Status:* ✅ Entregue
-*Entregue por:* $entreguePor
-*Conteúdo:* $conteudo
-*Cliente:* $cliente
-*Endereco:* $endereco
-*Motorista:* $motorista
-*Hora:* $hora
-*Dia:* $data
-'''.trim();
-    } else if (statusRaw == 'falha') {
-      return '''
-------------- *ENTREGA* -------------
+    final bool isSucesso = status == 'concluido' || status == 'sucesso';
+    final String statusFormatado = isSucesso ? '✅ Concluído' : '❌ Falha';
+    final String tipoUpper = tipoModal.toUpperCase();
 
-*Status:* ❌ Falha
-*Motivo:* $motivo
-*Observações:* $obsFinal
-*Conteúdo:* $conteudo
-*Cliente:* $cliente
-*Endereco:* $endereco
-*Motorista:* $motorista
-*Hora:* $hora
-*Dia:* $data
-'''.trim();
+    final StringBuffer sb = StringBuffer();
+
+    // --- COLETA ---
+    if (tipoUpper == 'COLETA' || tipoUpper == 'RECOLHA') {
+      sb.writeln('------------- *COLETA* -------------');
+      sb.writeln();
+      sb.writeln('*Status:* $statusFormatado');
+
+      if (isSucesso) {
+        final entregador = [motivoOuCargo, obsMotorista]
+            .where((s) => s.isNotEmpty)
+            .join(' ');
+        sb.writeln('*Entregue por:* $entregador');
+        sb.writeln('*Conteúdo:* $conteudoEntregue');
+      } else {
+        sb.writeln('*Motivo:* $motivoOuCargo');
+        sb.writeln('*Obs:* $obsMotorista');
+        sb.writeln('*Conteúdo:* $conteudoEntregue');
+      }
+
+    // --- ENTREGA ---
+    } else if (tipoUpper == 'ENTREGA') {
+      sb.writeln('------------- *ENTREGA* -------------');
+      sb.writeln();
+      sb.writeln('*Status:* $statusFormatado');
+
+      if (isSucesso) {
+        final recebedor = [motivoOuCargo, obsMotorista]
+            .where((s) => s.isNotEmpty)
+            .join(' ');
+        sb.writeln('*Recebido por:* $recebedor');
+        sb.writeln('*Conteúdo Entregue:* $conteudoEntregue');
+      } else {
+        sb.writeln('*Motivo:* $motivoOuCargo');
+        sb.writeln('*Obs:* $obsMotorista');
+        sb.writeln('*Conteúdo Entregue:* $conteudoEntregue');
+      }
+
+    // --- OUTROS / ATA ---
     } else {
-      // Status Outros
-      final statusStr = entrega['status'] ?? 'Outros';
-      return '''
-------------- *ENTREGA* -------------
-
-*Status:* $statusStr
-*Observações:* $obsFinal
-*Conteúdo:* $conteudo
-*Cliente:* $cliente
-*Endereco:* $endereco
-*Motorista:* $motorista
-*Hora:* $hora
-*Dia:* $data
-'''.trim();
+      sb.writeln('------------- *OUTROS/ATA* -------------');
+      sb.writeln();
+      sb.writeln('*Status:* $statusFormatado');
+      sb.writeln('*Obs:* $motivoOuCargo');
+      sb.writeln('*Conteúdo:* $conteudoEntregue');
     }
+
+    // --- Campos comuns ---
+    sb.writeln('*Cliente:* $cliente');
+    sb.writeln('*Endereco:* $endereco');
+    sb.writeln('*Motorista:* $motorista');
+    sb.writeln('*Hora:* $hora');
+    sb.writeln('*Dia:* $data');
+
+    return sb.toString().trim();
   }
 }
