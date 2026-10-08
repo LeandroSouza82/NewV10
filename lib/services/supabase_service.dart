@@ -39,6 +39,10 @@ class SupabaseService {
       throw Exception('E-mail ou senha incorretos.');
     }
 
+    if (response['aprovado'] != true) {
+      throw Exception('Seu cadastro está aguardando aprovação do gestor.');
+    }
+
     // Atualização agressiva: sobrescrevemos o status e a última atualização
     // para "expulsar" qualquer atualização vinda do app antigo.
     await client
@@ -46,7 +50,6 @@ class SupabaseService {
         .update({
           'esta_online': true,
           'status': 'disponivel',
-          'aprovado': true, // Garantindo que o Dashboard veja como aprovado
           'ultima_atualizacao': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', response['id']);
@@ -66,11 +69,16 @@ class SupabaseService {
     
     if (currentMotoristaId != null) {
       try {
+        final motorista = await client.from('motoristas').select('aprovado').eq('id', currentMotoristaId!).maybeSingle();
+        if (motorista == null || motorista['aprovado'] != true) {
+          currentMotoristaId = null;
+          await prefs.remove('motorista_id');
+          return false;
+        }
         // Mágica: Atualiza o status para online no auto-login (Fire and Forget)
         client.from('motoristas').update({
           'esta_online': true,
           'status': 'disponivel',
-          'aprovado': true, // Garantindo que o Dashboard veja como aprovado
           'ultima_atualizacao': DateTime.now().toUtc().toIso8601String(),
         }).eq('id', currentMotoristaId!).then((_) {}).catchError((_) {});
       } catch (e) {
@@ -93,6 +101,9 @@ class SupabaseService {
     await prefs.remove('motorista_id');
     await prefs.remove('manter_logado');
     currentMotoristaId = null;
+    _idsRotasConhecidas = {};
+    _isPrimeiraBusca = true;
+    pararEscutaNovasEntregas();
   }
 
   // Inicializa monitoramento do socket Realtime para diagnóstico de conexão
@@ -138,7 +149,7 @@ class SupabaseService {
 
         if (motoristaIdRecebido == motoristaId && statusNovo == 'em_rota') {
           if (statusAntigo != 'em_rota') {
-            await AudioService.playChama(); // Toca incondicionalmente
+            // O aviso sonoro é deduplicado na consulta das rotas ativas.
             final lifecycleState = WidgetsBinding.instance.lifecycleState;
             final isBackground = lifecycleState == AppLifecycleState.paused || 
                                  lifecycleState == AppLifecycleState.inactive || 
@@ -146,7 +157,6 @@ class SupabaseService {
             
             if (isBackground) {
               print('✅ Rota recebida em background. Exibindo notificacao local e disparando Overlay nativo...');
-              await NotificationService.showRotaRecebida();
               
               try {
                 const MethodChannel mainChannel = MethodChannel('com.v10.delivery/main_overlay');
@@ -281,18 +291,20 @@ class SupabaseService {
 
     final controller = StreamController<List<Map<String, dynamic>>>.broadcast();
     Timer? pollingTimer;
+    bool fetching = false;
+    final motoristaId = currentMotoristaId!;
 
     // ─── FONTE PRIMÁRIA: REST (filtra em_rota no SERVIDOR, sem limite de 1000) ───
     Future<void> fetchViaRest() async {
+      if (fetching || controller.isClosed || currentMotoristaId != motoristaId) return;
+      fetching = true;
       print('⚡ REST: Buscando entregas em_rota via REST...');
       try {
-        final dataLimite = DateTime.now().toUtc().subtract(const Duration(days: 7)).toIso8601String();
 
         final dados = await client
             .from('entregas')
             .select()
-            .eq('motorista_id', currentMotoristaId!)
-            .gte('created_at', dataLimite)
+            .eq('motorista_id', motoristaId)
             .eq('status', 'em_rota')
             .order('ordem_logistica', ascending: true);
         
@@ -315,7 +327,8 @@ class SupabaseService {
           };
         }).toList();
         
-        if (!controller.isClosed) {
+        if (!controller.isClosed && currentMotoristaId == motoristaId) {
+          await NotificationService.avisarRoteiroPendente(motoristaId, list.map((rota) => rota['id'].toString()).toList());
           print('⚡ REST: Emitindo ${list.length} rotas em_rota. IDs: ${list.map((r) => r['id']).toList()}');
           
           if (list.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
@@ -331,7 +344,6 @@ class SupabaseService {
             bool temRotaNova = idsAtuais.any((id) => !_idsRotasConhecidas.contains(id));
 
             if (temRotaNova) {
-              await NotificationService.showRotaRecebida();
               print('✅ Rota nova via REST detectada.');
 
               final rotaNovaId = idsAtuais.firstWhere((id) => !_idsRotasConhecidas.contains(id));
@@ -463,6 +475,8 @@ class SupabaseService {
         if (!controller.isClosed) {
           controller.addError(e);
         }
+      } finally {
+        fetching = false;
       }
     }
 
@@ -515,8 +529,8 @@ class SupabaseService {
           print('⚡ SOCKET MONITOR: Socket desconectado. Atualizando via Polling.');
           ultimoEstadoLog = 'disconnected_fetch';
         }
-        fetchViaRest();
       }
+      fetchViaRest();
     });
 
     controller.onCancel = () {
