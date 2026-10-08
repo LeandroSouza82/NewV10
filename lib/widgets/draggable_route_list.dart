@@ -7,6 +7,7 @@ import '../theme/theme_controller.dart';
 import '../views/components/modal_baixa_entrega.dart';
 import '../views/components/modal_falha_entrega.dart';
 import '../core/utils/location_utils.dart';
+import '../core/utils/navigation_destination.dart';
 
 class DraggableRouteList extends StatefulWidget {
   final List<Map<String, dynamic>> rotasIniciais;
@@ -57,6 +58,12 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
 
   void ordenarPorDistancia() {
     rotas.sort((a, b) {
+      final ordemA = int.tryParse('${a['ordem_logistica']}');
+      final ordemB = int.tryParse('${b['ordem_logistica']}');
+      if (ordemA != null || ordemB != null) {
+        final comparacao = (ordemA ?? 2147483647).compareTo(ordemB ?? 2147483647);
+        if (comparacao != 0) return comparacao;
+      }
       final distA = a['distancia'] ?? a['km'] ?? 999999.0;
       final distB = b['distancia'] ?? b['km'] ?? 999999.0;
       final numA = (distA is num)
@@ -107,28 +114,8 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
     final prefs = await SharedPreferences.getInstance();
     final navegador = prefs.getString('navegador_padrao') ?? 'maps';
 
-    Uri uri;
-    if (lat != null && lng != null && lat != 0.0 && lng != 0.0) {
-      if (navegador == 'waze') {
-        uri = Uri.parse('https://waze.com/ul?ll=$lat,$lng&navigate=yes');
-      } else {
-        uri = Uri.parse(
-          'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
-        );
-      }
-    } else {
-      if (endereco.isEmpty) return;
-      final enderecoCodificado = Uri.encodeComponent(endereco);
-      if (navegador == 'waze') {
-        uri = Uri.parse(
-          'https://waze.com/ul?q=$enderecoCodificado&navigate=yes',
-        );
-      } else {
-        uri = Uri.parse(
-          'https://www.google.com/maps/dir/?api=1&destination=$enderecoCodificado',
-        );
-      }
-    }
+    final uri = buildNavigationDestination(endereco, lat, lng, navegador);
+    if (uri == null) return;
 
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {

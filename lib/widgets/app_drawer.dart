@@ -1,3 +1,4 @@
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -452,6 +453,16 @@ class AppDrawer extends StatelessWidget {
                   Navigator.of(context).pop(); // Fecha o Drawer
                   onTapSair();
                 },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: FutureBuilder<PackageInfo>(
+                future: PackageInfo.fromPlatform(),
+                builder: (context, snapshot) => Text(
+                  snapshot.hasData ? 'Versão ${snapshot.data!.version} (${snapshot.data!.buildNumber})' : '',
+                  style: const TextStyle(color: AppColors.textGrey, fontSize: 12),
+                ),
               ),
             ),
           ],
