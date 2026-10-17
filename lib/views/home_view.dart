@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'dart:convert';
 import 'dart:async';
+import '../core/app_environment.dart';
+import '../services/shared_test_client.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../core/app_colors.dart';
 import '../widgets/custom_app_bar.dart';
@@ -89,7 +91,9 @@ class _HomeViewState extends State<HomeView> {
     final cacheString = prefs.getString('cache_entregas_motorista');
     if (cacheString != null && mounted) {
       setState(() {
-        final List<dynamic> decoded = jsonDecode(cacheString);
+        final List<dynamic> raw = jsonDecode(cacheString);
+        final decoded = AppEnvironment.active?.isSharedTest == true
+            ? raw.where((row) => row is Map && isTestCard(Map<String, dynamic>.from(row))).toList() : raw;
         _entregasCacheadas = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
       });
     }
@@ -311,7 +315,12 @@ class _HomeViewState extends State<HomeView> {
       // Ignora falhas de timeout offline
     } finally {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      // Logout remove a sessão/cache visual, preservando avisos já recebidos,
+      // preferências e evidências que ainda aguardam sincronização.
+      for (final key in ['motorista_id', 'nome_motorista', 'manter_logado',
+        'email_salvo', 'cache_entregas_motorista']) {
+        await prefs.remove(key);
+      }
 
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(

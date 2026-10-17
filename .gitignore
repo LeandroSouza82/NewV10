@@ -47,3 +47,4 @@ app.*.map.json
 # Configurações locais de homologação (não versionar chaves).
 config/*.json
 !config/test.example.json
+!config/shared-test.example.json

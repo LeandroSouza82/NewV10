@@ -2,8 +2,7 @@ name: Test environment
 
 on:
   push:
-    branches: [feat/roteiro-offline-seguro]
-  pull_request:
+    branches: [feat/roteiro-offline-seguro, feat/roteiro-offline-testes-identificados]
 
 permissions:
   contents: read
@@ -26,6 +25,6 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos
       - name: Test environment, navigation and notifications without database
-        run: flutter test test/app_environment_test.dart test/navigation_destination_test.dart test/route_notification_test.dart
+        run: flutter test test/app_environment_test.dart test/navigation_destination_test.dart test/route_notification_test.dart test/shared_test_client_test.dart
       - name: Build isolated Android test package (configuration intentionally empty)
         run: flutter build apk --debug --flavor homologacao --dart-define-from-file=config/test.example.json

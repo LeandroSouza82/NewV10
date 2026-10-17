@@ -15,6 +15,7 @@ import 'main_overlay.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'core/app_environment.dart';
+import 'services/shared_test_client.dart';
 
 @pragma('vm:entry-point')
 void overlayMain() {
@@ -41,6 +42,7 @@ void main() async {
     return;
   }
 
+  AppEnvironment.active = environment;
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
@@ -49,6 +51,7 @@ void main() async {
 
   await Supabase.initialize(
     url: environment.url,
+    httpClient: environment.isSharedTest ? SharedTestClient(environment) : null,
     // ignore: deprecated_member_use
     anonKey: environment.publicKey,
   );

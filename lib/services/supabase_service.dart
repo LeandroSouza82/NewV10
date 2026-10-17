@@ -16,6 +16,8 @@ import '../models/chamada_model.dart';
 import '../views/chamadas/widgets/chamada_card.dart';
 import 'package:app_do_motorista/services/notification_service.dart';
 import '../core/utils/location_utils.dart';
+import '../core/app_environment.dart';
+import 'shared_test_client.dart';
 class SupabaseService {
   static final SupabaseClient client = Supabase.instance.client;
   
@@ -139,6 +141,7 @@ class SupabaseService {
         print('🔔 Alteração de entrega recebida via Realtime: ${payload.newRecord}');
         
         final newRecord = payload.newRecord;
+        if (AppEnvironment.active?.isSharedTest == true && !isTestCard(newRecord)) return;
         final oldRecord = payload.oldRecord;
         
         if (newRecord.isEmpty) return;
