@@ -117,7 +117,7 @@ class SyncService {
           updateData['foto_url'] = fotoUrl;
         }
 
-        await SupabaseService.client.from('entregas').update(updateData).eq('id', item['entrega_id']);
+        await SupabaseService.client.from('entregas').update(updateData).eq('id', item['entrega_id']).select('id').single();
 
         // Deletar foto permanente local se existir
         if (item['foto_path'] != null && item['foto_path'].toString().isNotEmpty) {
