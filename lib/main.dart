@@ -87,8 +87,8 @@ class AppDoMotorista extends StatelessWidget {
       builder: (context, currentThemeMode, child) {
         return MaterialApp(
           navigatorKey: navigatorKey,
-          title: appFlavor == 'teste' ? 'V10 Teste' : 'App do Motorista',
-          builder: (context, child) => appFlavor == 'teste'
+          title: appFlavor == 'homologacao' ? 'V10 Teste' : 'App do Motorista',
+          builder: (context, child) => appFlavor == 'homologacao'
               ? Banner(message: 'TESTE', location: BannerLocation.topEnd, child: child!)
               : child!,
           debugShowCheckedModeBanner: false,

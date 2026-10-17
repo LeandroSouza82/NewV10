@@ -28,4 +28,4 @@ jobs:
       - name: Test environment, navigation and notifications without database
         run: flutter test test/app_environment_test.dart test/navigation_destination_test.dart test/route_notification_test.dart
       - name: Build isolated Android test package (configuration intentionally empty)
-        run: flutter build apk --debug --flavor teste --dart-define-from-file=config/test.example.json
+        run: flutter build apk --debug --flavor homologacao --dart-define-from-file=config/test.example.json

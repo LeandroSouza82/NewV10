@@ -6,7 +6,7 @@ class AppEnvironment {
   final String projectRef;
   final String url;
   final String publicKey;
-  bool get isTest => flavor == 'teste';
+  bool get isTest => flavor == 'homologacao';
 
   const AppEnvironment._(this.flavor, this.projectRef, this.url, this.publicKey);
 
@@ -23,7 +23,7 @@ class AppEnvironment {
     required String url,
     required String publicKey,
   }) {
-    if (flavor != 'teste' && flavor != 'producao') {
+    if (flavor != 'homologacao' && flavor != 'producao') {
       throw const FormatException('Escolha a versão teste ao gerar o aplicativo.');
     }
     final ref = projectRef.trim();
@@ -34,7 +34,7 @@ class AppEnvironment {
         (uri.path.isNotEmpty && uri.path != '/') || uri.hasQuery || uri.hasFragment) {
       throw const FormatException('Configure a URL e a referência do mesmo projeto Supabase.');
     }
-    if (flavor == 'teste' && ref == productionProjectRef) {
+    if (flavor == 'homologacao' && ref == productionProjectRef) {
       throw const FormatException('Conexão bloqueada: V10 Teste não pode usar o banco de produção.');
     }
     if (flavor == 'producao' && ref != productionProjectRef) {

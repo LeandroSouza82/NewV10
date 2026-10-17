@@ -34,7 +34,7 @@ android {
 
     flavorDimensions += "ambiente"
     productFlavors {
-        create("teste") {
+        create("homologacao") {
             dimension = "ambiente"
             applicationIdSuffix = ".test"
             versionNameSuffix = "-teste"

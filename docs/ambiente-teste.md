@@ -4,7 +4,7 @@ Branch: `feat/roteiro-offline-seguro`. Versão: 1.1.3+4. Sem merge/publicação 
 
 ## Instalação identificável e configuração reproduzível
 
-- Flavor `teste` (padrão): pacote `com.example.app_do_motorista.test`, nome “V10 Teste”, sufixo de versão `-teste`, faixa TESTE na interface. O sufixo vale tanto para debug quanto para release.
+- Flavor `homologacao` (padrão): pacote `com.example.app_do_motorista.test`, nome “V10 Teste”, sufixo de versão `-teste`, faixa TESTE na interface. O sufixo vale tanto para debug quanto para release.
 - Flavor `producao`: mantém o pacote original e nome “V10 Delivery”. Não usar nesta etapa. A assinatura release ainda é a configuração antiga de debug e não é certificada para distribuição oficial.
 - A configuração do banco é recebida por dart-define. Não há URL/chave de produção como fallback. O flavor real compilado define o ambiente; não há um APP_ENV separado que permita ligar o flavor de teste à produção conhecida.
 - Configuração ausente/inválida mostra uma tela explicativa antes de inicializar Supabase, permissões, sincronização e presença.
@@ -19,10 +19,10 @@ Branch: `feat/roteiro-offline-seguro`. Versão: 1.1.3+4. Sem merge/publicação 
 flutter pub get
 flutter analyze --no-fatal-infos
 flutter test test/app_environment_test.dart test/navigation_destination_test.dart test/route_notification_test.dart
-flutter build apk --debug --flavor teste --dart-define-from-file=config/test.local.json
+flutter build apk --debug --flavor homologacao --dart-define-from-file=config/test.local.json
 ```
 
-APK esperado: `build/app/outputs/flutter-apk/app-teste-debug.apk`. Conferir ID/nome/versão antes de instalar e manter o app oficial instalado. Não desinstalar o app oficial nem remover dados/pendências dele.
+APK esperado: `build/app/outputs/flutter-apk/app-homologacao-debug.apk`. Conferir ID/nome/versão antes de instalar e manter o app oficial instalado. Não desinstalar o app oficial nem remover dados/pendências dele.
 
 Com o template vazio, o APK apenas mostra o bloqueio de configuração; não é uma versão pronta para testar entregas. A CI usa esse template intencionalmente para compilar sem credenciais e sem banco real.
 

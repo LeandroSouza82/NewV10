@@ -5,7 +5,7 @@ import 'package:app_do_motorista/core/app_environment.dart';
 void main() {
   const ref = 'homologacaoficticia';
   String key(String project, [String role = 'anon']) => 'header.${base64Url.encode(utf8.encode(jsonEncode({'ref': project, 'role': role})))}.signature';
-  AppEnvironment config({String flavor = 'teste', String project = ref, String? url, String? publicKey}) =>
+  AppEnvironment config({String flavor = 'homologacao', String project = ref, String? url, String? publicKey}) =>
       AppEnvironment.fromValues(flavor: flavor, projectRef: project,
           url: url ?? 'https://$project.supabase.co', publicKey: publicKey ?? key(project));
 
