@@ -103,9 +103,11 @@ class _RegisterViewState extends State<RegisterView> {
         'telefone': telefoneLimpo,
         'email': _emailController.text.trim().toLowerCase(),
         'senha': _senhaController.text.trim(),
+        'aprovado': false,
+        'esta_online': false,
       });
 
-      _mostrarSucesso('Cadastro realizado com sucesso!');
+      _mostrarSucesso('Cadastro enviado! Aguarde a aprovação do gestor para acessar seus roteiros.');
       
       if (!mounted) return;
       Navigator.pop(context);

@@ -14,6 +14,7 @@ import 'services/presence_service.dart';
 import 'main_overlay.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
+import 'core/app_environment.dart';
 
 @pragma('vm:entry-point')
 void overlayMain() {
@@ -21,13 +22,25 @@ void overlayMain() {
   runApp(const OverlayApp());
 }
 
-// Mantenha suas credenciais finais reais aqui
-const String supabaseUrl = 'https://uqxoadxqcwidxqsfayem.supabase.co';
-const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxeG9hZHhxY3dpZHhxc2ZheWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0NDUxODksImV4cCI6MjA4NDAyMTE4OX0.q9_RqSx4YfJxlblPS9fwrocx3HDH91ff1zJvPbVGI8w';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+  late final AppEnvironment environment;
+  try {
+    environment = AppEnvironment.fromBuild();
+  } on FormatException catch (error) {
+    runApp(MaterialApp(home: Scaffold(body: SafeArea(child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Text('V10 Teste — configuração pendente', style: TextStyle(fontSize: 22)),
+        const SizedBox(height: 16),
+        Text(error.message),
+        const SizedBox(height: 16),
+        const Text('Nenhuma conexão com o banco foi iniciada. Configure o ambiente de homologação e gere novamente.'),
+      ]),
+    )))));
+    return;
+  }
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
@@ -35,9 +48,9 @@ void main() async {
   PermissionService.requestAllVitalPermissions();
 
   await Supabase.initialize(
-    url: supabaseUrl,
+    url: environment.url,
     // ignore: deprecated_member_use
-    anonKey: supabaseAnonKey,
+    anonKey: environment.publicKey,
   );
   
   // Inicializa o monitoramento do Socket Realtime para diagnóstico
@@ -74,7 +87,10 @@ class AppDoMotorista extends StatelessWidget {
       builder: (context, currentThemeMode, child) {
         return MaterialApp(
           navigatorKey: navigatorKey,
-          title: 'App do Motorista',
+          title: appFlavor == 'homologacao' ? 'V10 Teste' : 'App do Motorista',
+          builder: (context, child) => appFlavor == 'homologacao'
+              ? Banner(message: 'TESTE', location: BannerLocation.topEnd, child: child!)
+              : child!,
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,

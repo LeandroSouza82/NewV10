@@ -1,3 +1,4 @@
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,7 +9,6 @@ import '../views/lista_ocorrencias_view.dart';
 import '../views/comprovantes/comprovantes_list_view.dart';
 import 'package:app_do_motorista/views/instrumentos/instrumentos_view.dart';
 import '../views/notificacoes/notificacoes_list_view.dart';
-import '../views/chamadas/chamadas_view.dart';
 import '../views/notificacoes/widgets/notification_icon_badge.dart';
 import '../views/veiculo/meu_veiculo_view.dart';
 import '../services/sync_service.dart';
@@ -376,17 +376,6 @@ class AppDrawer extends StatelessWidget {
                       },
                     ),
                     ListTile(
-                      leading: const Icon(Icons.call_split_outlined, color: AppColors.textWhite),
-                      title: const Text('Chamadas e Rotas', style: TextStyle(color: AppColors.textWhite)),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const ChamadasView()),
-                        );
-                      },
-                    ),
-                    ListTile(
                       leading: const Icon(Icons.directions_car_filled_outlined, color: AppColors.textWhite),
                       title: const Text('Meu Veículo', style: TextStyle(color: AppColors.textWhite)),
                       trailing: const VehicleDrawerBadge(),
@@ -452,6 +441,16 @@ class AppDrawer extends StatelessWidget {
                   Navigator.of(context).pop(); // Fecha o Drawer
                   onTapSair();
                 },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: FutureBuilder<PackageInfo>(
+                future: PackageInfo.fromPlatform(),
+                builder: (context, snapshot) => Text(
+                  snapshot.hasData ? 'Versão ${snapshot.data!.version} (${snapshot.data!.buildNumber})' : '',
+                  style: const TextStyle(color: AppColors.textGrey, fontSize: 12),
+                ),
               ),
             ),
           ],
