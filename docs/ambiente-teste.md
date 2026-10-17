@@ -1,6 +1,6 @@
 # V10 Teste — banco compartilhado e cards identificados
 
-Branch ativa: `feat/roteiro-offline-testes-identificados`. Versão: 1.1.4+5.
+Branch ativa: `feat/roteiro-offline-testes-identificados`. Versão: 1.1.5+6.
 
 O usuário autorizou em 17/10/2026 os testes no projeto atual usando cards claramente marcados como TESTE. Não criar outro banco nem modificar esquema, políticas/RLS, autenticação ou aplicativo publicado por esta etapa. As branches anteriores permanecem disponíveis.
 
@@ -34,3 +34,11 @@ Sem merge, publicação ou instalação sobre o app oficial. Testar no celular a
 Limpeza dos registros: identificar os IDs exatos criados por este teste, conferir nome TESTE antes da exclusão e remover somente esses IDs. Não usar exclusão ampla por status, motorista ou texto genérico. Uma branch apagada não desfaz dados do banco.
 
 O modo isolado anterior continua disponível, mas não é requisito para esta sequência autorizada pelo usuário.
+
+## Aviso sonoro (1.1.5+6)
+
+O histórico de IDs avisados é persistente por motorista e preservado ao sair da conta. Consultas concorrentes são serializadas. Lista vazia, subconjunto e reordenação não apagam esse histórico. Registra antes da chamada nativa; se o Android falhar ou negar permissão, os cards continuam chegando e a mesma entrega não fica tocando a cada consulta. Isso prioriza não repetir: uma interrupção entre gravação e exibição pode deixar um aviso sem som. Novos IDs continuam gerando um aviso por lote consultado.
+
+O logout remove somente sessão e cache visual, sem apagar histórico de avisos ou fila de sincronização. Não desinstalar/limpar dados ao atualizar para preservar o histórico. Validar no celular: reabrir duas vezes sem som; sair e entrar sem som; atribuir novos cards TESTE e conferir um aviso; reabrir e confirmar silêncio.
+
+Não há Firebase/FCM configurado no repositório. Push com processo encerrado ainda requer projeto Firebase, configuração Android do pacote de teste e envio autenticado no servidor. Nenhuma dependência incompleta ou alteração no banco foi adicionada por esta correção.

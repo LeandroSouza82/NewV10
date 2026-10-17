@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  static Future<void> _pending = Future<void>.value();
 
   static Future<void> initialize() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -15,26 +16,43 @@ class NotificationService {
     await _plugin.initialize(settings: initializationSettings);
   }
 
-  // Guarda somente os pontos ativos já avisados, separados por motorista.
-  // A consulta inicial também avisa roteiros recebidos enquanto o app estava fechado.
-  static Future<void> avisarRoteiroPendente(String motoristaId, List<String> ids) async {
+  // Histórico por motorista: uma lista vazia/reconexão não torna uma entrega nova.
+  // Serializa consultas concorrentes e registra ANTES de chamar o Android.
+  static Future<void> avisarRoteiroPendente(
+    String motoristaId,
+    List<String> ids, {
+    Future<void> Function()? notify,
+  }) {
+    final operation = _pending.then((_) => _avisar(motoristaId, ids, notify));
+    _pending = operation.catchError((Object _) {});
+    return operation;
+  }
+
+  static Future<void> _avisar(
+    String motoristaId,
+    List<String> ids,
+    Future<void> Function()? notify,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final key = 'roteiros_avisados_$motoristaId';
     final conhecidos = (prefs.getStringList(key) ?? []).toSet();
-    if (ids.any((id) => !conhecidos.contains(id))) {
-      try {
-        await showRotaRecebida();
-      } catch (_) {
-        // Permissão negada não impede o carregamento do roteiro.
-        return;
-      }
+    final novos = ids.where((id) => id.isNotEmpty && !conhecidos.contains(id)).toSet();
+    if (novos.isEmpty) return;
+
+    // Se não conseguir persistir, carrega os cards sem arriscar repetir o som.
+    final saved = await prefs.setStringList(key, {...conhecidos, ...novos}.toList());
+    if (!saved) return;
+    try {
+      await (notify ?? showRotaRecebida)();
+    } catch (_) {
+      // Permissão negada/erro nativo não impede os cards nem repete o aviso.
     }
-    await prefs.setStringList(key, ids);
   }
 
   static Future<void> showRotaRecebida() async {
     final prefs = await SharedPreferences.getInstance();
-    final somAtivo = prefs.getBool('somNovaChamada') ?? true;
+    final somAtivo = (prefs.getBool('somGeralAtivo') ?? true) &&
+        (prefs.getBool('somNovaChamada') ?? true);
 
     await _plugin.show(
       id: 0,

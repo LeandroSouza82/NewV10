@@ -315,7 +315,12 @@ class _HomeViewState extends State<HomeView> {
       // Ignora falhas de timeout offline
     } finally {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      // Logout remove a sessão/cache visual, preservando avisos já recebidos,
+      // preferências e evidências que ainda aguardam sincronização.
+      for (final key in ['motorista_id', 'nome_motorista', 'manter_logado',
+        'email_salvo', 'cache_entregas_motorista']) {
+        await prefs.remove(key);
+      }
 
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
