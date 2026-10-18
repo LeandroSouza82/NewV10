@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1092925014688",
+    "project_id": "calculo-de-rotas-2a2b6",
+    "storage_bucket": "calculo-de-rotas-2a2b6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1092925014688:android:b8bc74f4115a3ca798bfc5",
+        "android_client_info": {
+          "package_name": "com.example.app_do_motorista"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCl5fE_TyzeSGuvsWcdL7JtmIgEDZTTKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1092925014688:android:b3089ec67067b51598bfc5",
+        "android_client_info": {
+          "package_name": "com.example.app_do_motorista.test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCl5fE_TyzeSGuvsWcdL7JtmIgEDZTTKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
