@@ -1,3 +1,4 @@
+import 'dart:ui' show Color;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,7 +8,7 @@ class NotificationService {
 
   static Future<void> initialize() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_stat_v10');
 
     const InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
@@ -64,6 +65,9 @@ class NotificationService {
           'Alertas de Rota',
           importance: Importance.max,
           priority: Priority.high,
+          icon: '@drawable/ic_stat_v10',
+          largeIcon: const DrawableResourceAndroidBitmap('@drawable/ic_v10_logo'),
+          color: const Color(0xFF44D62C),
           sound: somAtivo ? const RawResourceAndroidNotificationSound('chama') : null,
           playSound: somAtivo,
         ),

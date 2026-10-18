@@ -161,6 +161,8 @@ serve(async (req) => {
           priority: "high", // Desperta o aparelho em Doze / Standby
           notification: {
             channel_id: "canal_urgente",
+            icon: "ic_stat_v10",
+            color: "#44D62C",
             sound: "chama",
             default_sound: true,
             notification_priority: "PRIORITY_MAX",
