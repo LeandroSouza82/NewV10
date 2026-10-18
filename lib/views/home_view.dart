@@ -356,11 +356,13 @@ class _HomeViewState extends State<HomeView> {
         children: [
           // Fundo
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [AppColors.backgroundBody, Colors.black],
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? const [AppColors.backgroundBody, Colors.black]
+                    : const [Color(0xFFF8F9FA), Color(0xFFEDF2F7)],
               ),
             ),
           ),

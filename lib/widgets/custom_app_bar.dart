@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/app_colors.dart';
 import '../views/notificacoes/widgets/notification_icon_badge.dart';
 import 'vehicle_alert_badge.dart';
@@ -22,55 +23,73 @@ class CustomAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          decoration: BoxDecoration(
-            color: AppColors.backgroundBody.withValues(alpha: 0.7),
-            border: const Border(
-              bottom: BorderSide(color: Colors.white10, width: 1),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final overlayStyle = SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+    );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: overlayStyle,
+      child: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.backgroundBody.withValues(alpha: 0.7)
+                  : Colors.white.withValues(alpha: 0.9),
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? Colors.white10 : Colors.black12,
+                  width: 1,
+                ),
+              ),
             ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Ícone de Menu com efeito de clique sutil
-                Builder(
-                  builder: (context) {
-                    return Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () {
-                          Scaffold.of(context).openDrawer();
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: VehicleAlertBadge(
-                            child: NotificationIconBadge(
-                              child: Icon(Icons.menu_rounded, color: AppColors.textWhite, size: 28),
+            child: SafeArea(
+              bottom: false,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Ícone de Menu com efeito de clique sutil
+                  Builder(
+                    builder: (context) {
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () {
+                            Scaffold.of(context).openDrawer();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: VehicleAlertBadge(
+                              child: NotificationIconBadge(
+                                child: Icon(
+                                  Icons.menu_rounded,
+                                  color: isDark ? AppColors.textWhite : Colors.black87,
+                                  size: 28,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-                
-                // Título Elegante
-                const Text(
-                  'V10 Delivery',
-                  style: TextStyle(
-                    color: AppColors.textWhite,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                      );
+                    },
                   ),
-                ),
+                  
+                  // Título Elegante
+                  Text(
+                    'V10 Delivery',
+                    style: TextStyle(
+                      color: isDark ? AppColors.textWhite : Colors.black87,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
 
                 // Perfil e Status Animado
                 GestureDetector(
@@ -137,6 +156,7 @@ class CustomAppBar extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -175,6 +175,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -186,7 +187,11 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.route_rounded, color: AppColors.textGrey, size: 20),
+                    Icon(
+                      Icons.route_rounded,
+                      color: isDark ? AppColors.textGrey : const Color(0xFF495057),
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Flexible(
                       child: FittedBox(
@@ -195,7 +200,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                         child: Text(
                           'ROTEIRIZAÇÃO',
                           style: TextStyle(
-                            color: AppColors.textGrey.withValues(alpha: 0.9),
+                            color: isDark ? AppColors.textGrey.withValues(alpha: 0.9) : const Color(0xFF495057),
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5,
                             fontSize: 14,

@@ -17,20 +17,26 @@ class InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 6),
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.cardBackground.withValues(alpha: 0.7),
+          color: isDark
+              ? AppColors.cardBackground.withValues(alpha: 0.7)
+              : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: accentColor.withValues(alpha: 0.3),
+            color: accentColor.withValues(alpha: isDark ? 0.3 : 0.4),
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: accentColor.withValues(alpha: 0.15),
+              color: isDark
+                  ? accentColor.withValues(alpha: 0.15)
+                  : Colors.black.withValues(alpha: 0.06),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -39,12 +45,12 @@ class InfoCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: accentColor.withValues(alpha: 0.8), size: 24),
+            Icon(icon, color: accentColor.withValues(alpha: 0.9), size: 24),
             const SizedBox(height: 12),
             Text(
               value,
-              style: const TextStyle(
-                color: AppColors.textWhite,
+              style: TextStyle(
+                color: isDark ? AppColors.textWhite : const Color(0xFF111111),
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 height: 1,
@@ -54,7 +60,9 @@ class InfoCard extends StatelessWidget {
             Text(
               title.toUpperCase(),
               style: TextStyle(
-                color: AppColors.textGrey.withValues(alpha: 0.9),
+                color: isDark
+                    ? AppColors.textGrey.withValues(alpha: 0.9)
+                    : const Color(0xFF6C757D),
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.2,
