@@ -62,6 +62,29 @@ class SupabaseService {
       await prefs.setString('nome_motorista', response['nome']);
     }
     currentMotoristaId = response['id'];
+
+    // Sincroniza o token FCM se já houver um capturado
+    final savedFcmToken = prefs.getString('fcm_token');
+    if (savedFcmToken != null && savedFcmToken.isNotEmpty) {
+      atualizarFcmToken(savedFcmToken);
+    }
+  }
+
+  // Atualiza o token FCM do motorista na tabela motoristas
+  static Future<void> atualizarFcmToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    final motoristaId = currentMotoristaId ?? prefs.getString('motorista_id');
+    if (motoristaId == null || motoristaId.isEmpty) return;
+
+    try {
+      await client
+          .from('motoristas')
+          .update({'fcm_token': token})
+          .eq('id', motoristaId);
+      print('🔔 FCM: Token sincronizado no Supabase para o motorista $motoristaId');
+    } catch (e) {
+      print('⚠️ FCM: Falha ao sincronizar token no Supabase: $e');
+    }
   }
 
   // Verifica se o motorista já está salvo e avisa o banco que ele entrou
@@ -83,6 +106,12 @@ class SupabaseService {
           'status': 'disponivel',
           'ultima_atualizacao': DateTime.now().toUtc().toIso8601String(),
         }).eq('id', currentMotoristaId!).then((_) {}).catchError((_) {});
+
+        // Sincroniza o token FCM caso esteja armazenado localmente
+        final savedFcmToken = prefs.getString('fcm_token');
+        if (savedFcmToken != null && savedFcmToken.isNotEmpty) {
+          atualizarFcmToken(savedFcmToken);
+        }
       } catch (e) {
         // Ignora o erro silenciosamente caso a internet oscile na abertura
       }
