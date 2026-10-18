@@ -144,30 +144,18 @@ serve(async (req) => {
     const projectId = serviceAccount.project_id;
     const accessToken = await getGoogleAccessToken(serviceAccount);
 
-    // 3. Monta o Payload de Prioridade Alta (FCM HTTP v1) para acordar o celular
+    // 3. Monta o Payload data-only de Prioridade Alta (FCM HTTP v1).
+    // Sem bloco "notification": o app exibe a notificação local (logo V10, som "chama"),
+    // evitando duas notificações para o mesmo evento.
     const fcmMessage = {
       message: {
         token: motorista.fcm_token,
-        notification: {
-          title: "Nova Rota Disponível!",
-          body: `Olá ${motorista.nome || "Motorista"}, você recebeu uma nova rota. Toque para abrir.`,
-        },
         data: {
           tipo: "nova_rota",
           rota_id: String(rotaId || ""),
-          click_action: "FLUTTER_NOTIFICATION_CLICK",
         },
         android: {
           priority: "high", // Desperta o aparelho em Doze / Standby
-          notification: {
-            channel_id: "canal_urgente",
-            icon: "ic_stat_v10",
-            color: "#44D62C",
-            sound: "chama",
-            default_sound: true,
-            notification_priority: "PRIORITY_MAX",
-            visibility: "PUBLIC",
-          },
         },
       },
     };

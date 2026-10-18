@@ -15,10 +15,16 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await Firebase.initializeApp();
   } catch (_) {}
 
-  // Se a mensagem contiver dados de rota ou nova entrega, aciona o alerta com som personalizado
+  // Mensagem data-only: a notificação é montada localmente (logo V10, som e id fixo)
+  // para não duplicar com uma notificação nativa do FCM.
+  await _exibirSeForRota(message);
+}
+
+Future<void> _exibirSeForRota(RemoteMessage message) async {
   final tipo = message.data['tipo'] ?? message.data['type'];
   if (tipo == 'nova_rota' || tipo == 'nova_entrega' || message.data.containsKey('rota_id')) {
     try {
+      await NotificationService.initialize();
       await NotificationService.showRotaRecebida();
     } catch (_) {}
   }
@@ -132,13 +138,8 @@ class PushNotificationService {
 
   /// Trata mensagem recebida enquanto o app está aberto na tela
   static void _tratarMensagemForeground(RemoteMessage message) {
-    print('🔔 FCM recebido em Foreground: ${message.notification?.title}');
-    
-    // Se a mensagem não tiver display nativo automático, toca o alerta do roteiro
-    final notification = message.notification;
-    if (notification != null) {
-      NotificationService.showRotaRecebida();
-    }
+    print('🔔 FCM recebido em Foreground: ${message.data}');
+    _exibirSeForRota(message);
   }
 
   /// Trata o clique na notificação para direcionamento correto
