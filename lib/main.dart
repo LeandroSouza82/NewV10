@@ -63,6 +63,9 @@ void main() async {
   // Inicializa o serviço de notificações locais
   await NotificationService.initialize();
 
+  // Restaura a preferência de tema (dia/noite) salva no aparelho
+  await ThemeController.instance.load();
+
   // Inicializa o serviço de Push Notifications (Firebase FCM)
   await PushNotificationService.initialize();
   
