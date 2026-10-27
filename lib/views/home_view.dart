@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'dart:convert';
 import 'dart:async';
-import '../core/app_environment.dart';
-import '../services/shared_test_client.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../core/app_colors.dart';
 import '../widgets/custom_app_bar.dart';
@@ -91,9 +90,7 @@ class _HomeViewState extends State<HomeView> {
     final cacheString = prefs.getString('cache_entregas_motorista');
     if (cacheString != null && mounted) {
       setState(() {
-        final List<dynamic> raw = jsonDecode(cacheString);
-        final decoded = AppEnvironment.active?.isSharedTest == true
-            ? raw.where((row) => row is Map && isTestCard(Map<String, dynamic>.from(row))).toList() : raw;
+        final List<dynamic> decoded = jsonDecode(cacheString);
         _entregasCacheadas = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
       });
     }
@@ -342,7 +339,17 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Color(0xFF0A0E17),
+        systemNavigationBarDividerColor: Color(0xFF0A0E17),
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarContrastEnforced: false,
+      ),
+      child: Scaffold(
       drawer: AppDrawer(
         motorista: _motorista,
         saudacao: _saudacao,
@@ -510,6 +517,6 @@ class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
-    );
+    ));
   }
 }

@@ -16,8 +16,6 @@ import '../models/chamada_model.dart';
 import '../views/chamadas/widgets/chamada_card.dart';
 import 'package:app_do_motorista/services/notification_service.dart';
 import '../core/utils/location_utils.dart';
-import '../core/app_environment.dart';
-import 'shared_test_client.dart';
 class SupabaseService {
   static final SupabaseClient client = Supabase.instance.client;
   
@@ -33,8 +31,9 @@ class SupabaseService {
     final response = await client
         .from('motoristas')
         .select()
-        .ilike('email', email)
-        .eq('senha', password)
+        .ilike('email', email.trim())
+        .eq('senha', password.trim())
+        .limit(1)
         .maybeSingle();
 
     if (response == null) {
@@ -67,6 +66,23 @@ class SupabaseService {
     final savedFcmToken = prefs.getString('fcm_token');
     if (savedFcmToken != null && savedFcmToken.isNotEmpty) {
       atualizarFcmToken(savedFcmToken);
+    }
+  }
+
+  // Redefine a senha do motorista validando e-mail + CPF via RPC
+  static Future<void> redefinirSenha({
+    required String email,
+    required String cpf,
+    required String novaSenha,
+  }) async {
+    try {
+      await client.rpc('redefinir_senha_motorista', params: {
+        'p_email': email.trim(),
+        'p_cpf': cpf.trim(),
+        'p_nova_senha': novaSenha.trim(),
+      });
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
     }
   }
 
@@ -170,7 +186,6 @@ class SupabaseService {
         print('🔔 Alteração de entrega recebida via Realtime: ${payload.newRecord}');
         
         final newRecord = payload.newRecord;
-        if (AppEnvironment.active?.isSharedTest == true && !isTestCard(newRecord)) return;
         final oldRecord = payload.oldRecord;
         
         if (newRecord.isEmpty) return;

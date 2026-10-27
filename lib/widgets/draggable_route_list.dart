@@ -8,6 +8,7 @@ import '../views/components/modal_baixa_entrega.dart';
 import '../views/components/modal_falha_entrega.dart';
 import '../core/utils/location_utils.dart';
 import '../core/utils/navigation_destination.dart';
+import 'success_status.dart';
 
 class DraggableRouteList extends StatefulWidget {
   final List<Map<String, dynamic>> rotasIniciais;
@@ -94,6 +95,11 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
       _onDistanciasAtualizadas,
     );
     super.dispose();
+  }
+
+  bool _isColeta(Map<String, dynamic> rota) {
+    final tipo = (rota['tipo'] ?? '').toString().toLowerCase();
+    return tipo == 'coleta' || tipo == 'recolha';
   }
 
   void _reorder(int oldIndex, int newIndex) {
@@ -212,6 +218,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                 ),
               ),
               const SizedBox(width: 8),
+              if (rotas.any(_isColeta))
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
@@ -219,7 +226,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                 ),
                 onPressed: () async {
                   try {
-                    final rotaAtiva = rotas.isNotEmpty ? rotas.first : null;
+                    final rotaAtiva = rotas.where(_isColeta).firstOrNull;
                     if (rotaAtiva == null) {
                       throw 'Nenhuma rota ativa encontrada.';
                     }
@@ -250,7 +257,16 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
           ),
         ),
         Expanded(
-          child: RefreshIndicator(
+          child: rotas.isEmpty
+              ? const SafeArea(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.only(bottom: 24),
+                      child: SuccessStatus(),
+                    ),
+                  ),
+                )
+              : RefreshIndicator(
             onRefresh: () async {
               // Gatilho C: Recalcula e ordena no Pull-to-Refresh
               DistanciaService.instance.forcarRecalculoImediato();

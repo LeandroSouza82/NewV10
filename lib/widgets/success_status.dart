@@ -18,10 +18,11 @@ class SuccessStatus extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Ícone de Check com Brilho (Neon Suave)
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.backgroundBody,
@@ -37,10 +38,10 @@ class SuccessStatus extends StatelessWidget {
             child: const Icon(
               Icons.check_rounded,
               color: AppColors.successGreen,
-              size: 60,
+              size: 44,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
           
           // Título de Sucesso
           const Text(
@@ -64,7 +65,7 @@ class SuccessStatus extends StatelessWidget {
               fontWeight: FontWeight.w400,
             ),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 20),
 
           // Indicador de Carregamento
           const SizedBox(
@@ -75,7 +76,7 @@ class SuccessStatus extends StatelessWidget {
               strokeWidth: 3,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           
           // Texto Procurando Rotas
           Row(
@@ -92,7 +93,7 @@ class SuccessStatus extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 20),
 
           // Botão Premium de Retorno
           SizedBox(

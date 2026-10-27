@@ -33,18 +33,6 @@ android {
         multiDexEnabled = true
     }
 
-    flavorDimensions += "ambiente"
-    productFlavors {
-        create("homologacao") {
-            dimension = "ambiente"
-            applicationIdSuffix = ".test"
-            versionNameSuffix = "-teste"
-        }
-        create("producao") {
-            dimension = "ambiente"
-        }
-    }
-
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

@@ -51,3 +51,39 @@ config/*.json
 
 # Supabase CLI temp files
 supabase/.temp/
+
+# APKs gerados ou soltos na raiz
+*.apk
+
+# Pastas e arquivos externos/legados na raiz
+app-leituras-pr50/
+app-leituras-ucondo/
+autofast-aws-publicacao/
+comercial-apresentador-20261027/
+comercial-fast-leituras/
+company-identity-20261023/
+domain-20261023/
+fastleituras-*/
+map-layout-20261023/
+receipt-sharing-backup/
+release-20261023/
+route-rules-backup/
+system-copy-backup-20261026/
+transcription-tools/
+trial-20261023/
+vehicle-approval-20261024/
+video-tools/
+whatsapp-20261023/
+skills-lock.json
+*.html
+*.mjs
+*.cjs
+*.py
+*.xml
+!android/**
+!ios/**
+.agents/
+fastleituras-*.jpg
+fastleituras-*.json
+production-footer-response.txt
+restore-fastleituras-production.ps1

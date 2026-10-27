@@ -8,6 +8,7 @@ import '../core/app_colors.dart';
 import '../services/supabase_service.dart';
 import 'home_view.dart';
 import 'register_view.dart';
+import 'widgets/forgot_password_modal.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -288,6 +289,17 @@ class _LoginViewState extends State<LoginView> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () => ForgotPasswordModal.show(context),
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 32)),
+                      child: const Text(
+                        'Esqueci minha senha?',
+                        style: TextStyle(color: AppColors.successGreen, fontSize: 13),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
