@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AudioService {
@@ -26,20 +27,25 @@ class AudioService {
       somAlertaFalha = prefs.getBool('somAlertaFalha') ?? true;
       
       if (!_isInitialized) {
-        await _player.setAudioContext(AudioContext(
+        final audioContext = AudioContext(
           android: AudioContextAndroid(
-            audioMode: AndroidAudioMode.normal,
-            contentType: AndroidContentType.music,
-            usageType: AndroidUsageType.media,
-          )
-        ));
-        await _playerFinal.setAudioContext(AudioContext(
-          android: AudioContextAndroid(
-            audioMode: AndroidAudioMode.normal,
-            contentType: AndroidContentType.music,
-            usageType: AndroidUsageType.media,
-          )
-        ));
+            isSpeakerphoneOn: true,
+            stayAwake: true,
+            contentType: AndroidContentType.sonification,
+            usageType: AndroidUsageType.alarm,
+            audioFocus: AndroidAudioFocus.gainTransientExclusive,
+          ),
+          iOS: AudioContextIOS(
+            category: AVAudioSessionCategory.playback,
+            options: {
+              AVAudioSessionOptions.duckOthers,
+              AVAudioSessionOptions.defaultToSpeaker,
+            },
+          ),
+        );
+
+        await _player.setAudioContext(audioContext);
+        await _playerFinal.setAudioContext(audioContext);
         _player.onPlayerComplete.listen((_) => _player.release());
         _playerFinal.onPlayerComplete.listen((_) => _playerFinal.release());
         _isInitialized = true;
@@ -81,14 +87,18 @@ class AudioService {
 
   Future<void> _tocarSom(String fileName, {bool isFinal = false}) async {
     try {
+      if (!_isInitialized) {
+        await init();
+      }
       final player = isFinal ? _playerFinal : _player;
       await player.stop();
       await player.setVolume(1.0);
       await player.play(
         AssetSource('sounds/$fileName'), 
         volume: 1.0, 
-        mode: PlayerMode.lowLatency,
+        mode: PlayerMode.mediaPlayer,
       );
+      HapticFeedback.heavyImpact();
     } catch (_) {
       // Captura silenciosa
     }

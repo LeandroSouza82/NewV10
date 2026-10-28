@@ -196,7 +196,9 @@ class SupabaseService {
 
         if (motoristaIdRecebido == motoristaId && statusNovo == 'em_rota') {
           if (statusAntigo != 'em_rota') {
-            // O aviso sonoro é deduplicado na consulta das rotas ativas.
+            print('🔔 Nova rota atribuída via Realtime! Disparando alerta sonoro...');
+            AudioService.playChama();
+
             final lifecycleState = WidgetsBinding.instance.lifecycleState;
             final isBackground = lifecycleState == AppLifecycleState.paused || 
                                  lifecycleState == AppLifecycleState.inactive || 
@@ -391,7 +393,8 @@ class SupabaseService {
             bool temRotaNova = idsAtuais.any((id) => !_idsRotasConhecidas.contains(id));
 
             if (temRotaNova) {
-              print('✅ Rota nova via REST detectada.');
+              print('✅ Rota nova via REST detectada. Disparando alerta sonoro...');
+              AudioService.playChama();
 
               final rotaNovaId = idsAtuais.firstWhere((id) => !_idsRotasConhecidas.contains(id));
               final rotaNovaMap = list.firstWhere((rota) => rota['id'].toString() == rotaNovaId);

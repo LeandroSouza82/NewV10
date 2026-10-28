@@ -15,6 +15,20 @@ class NotificationService {
     );
 
     await _plugin.initialize(settings: initializationSettings);
+
+    final androidImplementation = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'canal_urgente',
+      'Alertas de Rota',
+      description: 'Notificações urgentes de novas rotas e entregas',
+      importance: Importance.max,
+      playSound: true,
+      sound: RawResourceAndroidNotificationSound('chama'),
+      enableVibration: true,
+    );
+    await androidImplementation?.createNotificationChannel(channel);
   }
 
   // Histórico por motorista: uma lista vazia/reconexão não torna uma entrega nova.

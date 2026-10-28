@@ -11,6 +11,7 @@ import 'services/sync_service.dart';
 import 'services/notification_service.dart';
 import 'services/presence_service.dart';
 import 'services/push_notification_service.dart';
+import 'services/audio_service.dart';
 
 import 'main_overlay.dart';
 import 'theme/app_theme.dart';
@@ -54,6 +55,9 @@ void main() async {
   
   // Inicializa o serviço de notificações locais
   await NotificationService.initialize();
+
+  // Inicializa o serviço de áudio e configura o canal de som
+  await AudioService.instance.init();
 
   // Restaura a preferência de tema (dia/noite) salva no aparelho
   await ThemeController.instance.load();
