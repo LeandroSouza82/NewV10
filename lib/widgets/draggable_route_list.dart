@@ -5,6 +5,7 @@ import '../core/app_colors.dart';
 import '../views/components/modal_baixa_entrega.dart';
 import '../views/components/modal_falha_entrega.dart';
 import '../core/utils/location_utils.dart';
+import '../core/utils/navigation_utils.dart';
 
 class DraggableRouteList extends StatefulWidget {
   final List<Map<String, dynamic>> rotasIniciais;
@@ -104,31 +105,38 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
   Future<void> _abrirNavegador(
     String endereco,
     double? lat,
-    double? lng,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final navegador = prefs.getString('navegador_padrao') ?? 'maps';
-
+    double? lng, {
+    bool priorizarEndereco = false,
+  }) async {
     Uri uri;
-    if (lat != null && lng != null && lat != 0.0 && lng != 0.0) {
-      if (navegador == 'waze') {
-        uri = Uri.parse('https://waze.com/ul?ll=$lat,$lng&navigate=yes');
-      } else {
-        uri = Uri.parse(
-          'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
-        );
-      }
+    if (priorizarEndereco) {
+      final destino = criarUrlNavegacao(endereco, lat, lng);
+      if (destino == null) return;
+      uri = destino;
     } else {
-      if (endereco.isEmpty) return;
-      final enderecoCodificado = Uri.encodeComponent(endereco);
-      if (navegador == 'waze') {
-        uri = Uri.parse(
-          'https://waze.com/ul?q=$enderecoCodificado&navigate=yes',
-        );
+      final prefs = await SharedPreferences.getInstance();
+      final navegador = prefs.getString('navegador_padrao') ?? 'maps';
+
+      if (lat != null && lng != null && lat != 0.0 && lng != 0.0) {
+        if (navegador == 'waze') {
+          uri = Uri.parse('https://waze.com/ul?ll=$lat,$lng&navigate=yes');
+        } else {
+          uri = Uri.parse(
+            'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
+          );
+        }
       } else {
-        uri = Uri.parse(
-          'https://www.google.com/maps/dir/?api=1&destination=$enderecoCodificado',
-        );
+        if (endereco.isEmpty) return;
+        final enderecoCodificado = Uri.encodeComponent(endereco);
+        if (navegador == 'waze') {
+          uri = Uri.parse(
+            'https://waze.com/ul?q=$enderecoCodificado&navigate=yes',
+          );
+        } else {
+          uri = Uri.parse(
+            'https://www.google.com/maps/dir/?api=1&destination=$enderecoCodificado',
+          );
+        }
       }
     }
 
@@ -522,7 +530,7 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
                             final double? latDestino = rota['lat'] != null ? double.tryParse(rota['lat'].toString()) : null;
                             final double? lngDestino = rota['lng'] != null ? double.tryParse(rota['lng'].toString()) : null;
                             final String enderecoDestino = rota['endereco']?.toString() ?? '';
-                            _abrirNavegador(enderecoDestino, latDestino, lngDestino);
+                            _abrirNavegador(enderecoDestino, latDestino, lngDestino, priorizarEndereco: true);
                           },
                           icon: const Icon(
                             Icons.map_outlined,
