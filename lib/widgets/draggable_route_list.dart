@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,19 +21,23 @@ class DraggableRouteList extends StatefulWidget {
 class _DraggableRouteListState extends State<DraggableRouteList> {
   late List<Map<String, dynamic>> rotas;
   Map<String, String> _distanciaTextos = {};
+  Completer<void>? _refreshPendente;
+  bool _ordenarAoReceberDistancias = false;
 
   @override
   void initState() {
     super.initState();
     rotas = List.from(widget.rotasIniciais);
 
-    // Alimenta o serviço com as entregas atuais
-    DistanciaService.instance.atualizarEntregas(rotas);
-
     // Escuta atualizações de distância vindas do GPS (passivamente)
     DistanciaService.instance.distanciasNotifier.addListener(
       _onDistanciasAtualizadas,
     );
+
+    // Registra a escuta antes de alimentar o serviço: o cache pode emitir
+    // distâncias sincronamente.
+    DistanciaService.instance.atualizarEntregas(rotas);
+    _onDistanciasAtualizadas();
 
     // Gatilho A: Ordenação após o carregamento inicial
     ordenarPorDistancia();
@@ -50,11 +56,21 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
             rota['distancia'] = double.tryParse(limpo) ?? rota['distancia'];
           }
         }
+        // O refresh só ordena depois de receber o resultado para a lista atual,
+        // inclusive se o cálculo demorar mais de 500 ms. Atualizações normais
+        // do GPS continuam preservando a ordem manual dos cards.
+        if (_ordenarAoReceberDistancias &&
+            rotas.every((rota) =>
+                _distanciaTextos.containsKey(rota['id']?.toString()))) {
+          _ordenarRotasPorDistancia();
+          _ordenarAoReceberDistancias = false;
+          _concluirRefresh();
+        }
       });
     }
   }
 
-  void ordenarPorDistancia() {
+  void _ordenarRotasPorDistancia() {
     rotas.sort((a, b) {
       final distA = a['distancia'] ?? a['km'] ?? 999999.0;
       final distB = b['distancia'] ?? b['km'] ?? 999999.0;
@@ -66,7 +82,43 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
           : (double.tryParse(distB.toString()) ?? 999999.0);
       return numA.compareTo(numB);
     });
+  }
+
+  void ordenarPorDistancia() {
+    _ordenarRotasPorDistancia();
     if (mounted) setState(() {});
+  }
+
+  Future<void> _atualizarEOrdenar() async {
+    final pendente = _refreshPendente;
+    if (pendente != null) return pendente.future;
+    if (rotas.isEmpty) return;
+
+    final refresh = Completer<void>();
+    _refreshPendente = refresh;
+    _ordenarAoReceberDistancias = true;
+    try {
+      DistanciaService.instance.forcarRecalculoImediato();
+      await refresh.future.timeout(const Duration(seconds: 20));
+    } on TimeoutException {
+      // Libera o indicador se não houver posição/resultado. Caso o serviço
+      // termine depois, a solicitação de ordenação ainda será atendida.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('As distâncias ainda não atualizaram. Aguarde a localização e tente novamente.'),
+          ),
+        );
+      }
+    } finally {
+      if (identical(_refreshPendente, refresh)) _concluirRefresh();
+    }
+  }
+
+  void _concluirRefresh() {
+    final refresh = _refreshPendente;
+    _refreshPendente = null;
+    if (refresh != null && !refresh.isCompleted) refresh.complete();
   }
 
   @override
@@ -86,6 +138,8 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
 
   @override
   void dispose() {
+    _ordenarAoReceberDistancias = false;
+    _concluirRefresh();
     DistanciaService.instance.distanciasNotifier.removeListener(
       _onDistanciasAtualizadas,
     );
@@ -93,6 +147,9 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
   }
 
   void _reorder(int oldIndex, int newIndex) {
+    // Arrastar um card explicitamente prevalece sobre um refresh atrasado.
+    _ordenarAoReceberDistancias = false;
+    _concluirRefresh();
     setState(() {
       if (newIndex > oldIndex) {
         newIndex -= 1;
@@ -262,13 +319,9 @@ class _DraggableRouteListState extends State<DraggableRouteList> {
         ),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () async {
-              // Gatilho C: Recalcula e ordena no Pull-to-Refresh
-              DistanciaService.instance.forcarRecalculoImediato();
-              await Future.delayed(const Duration(milliseconds: 500));
-              ordenarPorDistancia();
-            },
+            onRefresh: _atualizarEOrdenar,
             child: ReorderableListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(
           bottom: 80,
           top: 8,
