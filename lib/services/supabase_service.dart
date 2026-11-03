@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'audio_service.dart';
+import 'route_snapshot_guard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import '../main.dart';
@@ -342,6 +343,7 @@ class SupabaseService {
     Timer? pollingTimer;
     bool fetching = false;
     final motoristaId = currentMotoristaId!;
+    List<Map<String, dynamic>> ultimaListaConfirmada = [];
 
     // ─── FONTE PRIMÁRIA: REST (filtra em_rota no SERVIDOR, sem limite de 1000) ───
     Future<void> fetchViaRest() async {
@@ -357,7 +359,23 @@ class SupabaseService {
             .eq('status', 'em_rota')
             .order('ordem_logistica', ascending: true);
         
-        final list = dados.map((linha) {
+        final idsAtivos = dados.map((row) => row['id'].toString()).toSet();
+        final idsAusentes = ultimaListaConfirmada
+            .map((row) => row['id'].toString())
+            .where((id) => !idsAtivos.contains(id)).toList();
+        final confirmacoes = idsAusentes.isEmpty
+            ? <Map<String, dynamic>>[]
+            : await client.from('entregas').select().inFilter('id', idsAusentes);
+        if (controller.isClosed || currentMotoristaId != motoristaId) return;
+        final snapshotConfirmado = reconcileRouteSnapshot(
+          previous: ultimaListaConfirmada,
+          active: dados,
+          confirmed: confirmacoes,
+          driverId: motoristaId,
+        );
+        ultimaListaConfirmada = snapshotConfirmado.routes;
+
+        final list = snapshotConfirmado.routes.map((linha) {
           return {
             'id': linha['id'].toString(),
             'tipo': linha['tipo'] ?? 'Sem Tipo',
@@ -380,7 +398,7 @@ class SupabaseService {
           await NotificationService.avisarRoteiroPendente(motoristaId, list.map((rota) => rota['id'].toString()).toList());
           print('⚡ REST: Emitindo ${list.length} rotas em_rota. IDs: ${list.map((r) => r['id']).toList()}');
           
-          if (list.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
+          if (snapshotConfirmado.completed) {
             await AudioService.playFinal();
           }
 
