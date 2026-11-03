@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'audio_service.dart';
+import 'route_snapshot_guard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import '../main.dart';
@@ -284,6 +285,30 @@ class SupabaseService {
     Timer? fallbackTimer;
     Timer? pollingTimer;
     bool hasReceivedData = false;
+    final motoristaId = currentMotoristaId!;
+    List<Map<String, dynamic>> ultimaListaConfirmada = [];
+    Future<void> snapshotQueue = Future.value();
+
+    Future<RouteSnapshotResult> confirmarRotas(
+        List<Map<String, dynamic>> active) {
+      final pending = snapshotQueue.then((_) async {
+        final idsAtivos = active.map((row) => row['id'].toString()).toSet();
+        final idsAusentes = ultimaListaConfirmada
+            .map((row) => row['id'].toString())
+            .where((id) => !idsAtivos.contains(id)).toList();
+        final confirmacoes = idsAusentes.isEmpty
+            ? <Map<String, dynamic>>[]
+            : await client.from('entregas').select().inFilter('id', idsAusentes);
+        final snapshot = reconcileRouteSnapshot(
+          previous: ultimaListaConfirmada, active: active,
+          confirmed: confirmacoes, driverId: motoristaId,
+        );
+        ultimaListaConfirmada = snapshot.routes;
+        return snapshot;
+      });
+      snapshotQueue = pending.then<void>((_) {}, onError: (Object _) {});
+      return pending;
+    }
 
     // Função para buscar os dados via REST
     Future<void> fetchViaRest() async {
@@ -299,7 +324,7 @@ class SupabaseService {
             .or('status.eq.pendente,status.eq.em_rota')
             .order('ordem_logistica', ascending: true);
         
-        final list = dados.map((linha) {
+        final recebidas = dados.map((linha) {
           return {
             'id': linha['id'].toString(),
             'tipo': linha['tipo'] ?? 'Sem Tipo',
@@ -315,10 +340,12 @@ class SupabaseService {
           };
         }).toList();
         
-        if (!controller.isClosed) {
+        final snapshotConfirmado = await confirmarRotas(recebidas);
+        final list = snapshotConfirmado.routes;
+        if (!controller.isClosed && currentMotoristaId == motoristaId) {
           print('⚡ FALLBACK: Dados REST recebidos com sucesso. Qtd: ${list.length}');
           
-          if (list.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
+          if (snapshotConfirmado.completed) {
             await AudioService.playFinal();
           }
 
@@ -520,10 +547,19 @@ class SupabaseService {
           .listen(
             (dados) async {
               // Convertendo de List<Map<dynamic, dynamic>> para List<Map<String, dynamic>>
-              final mapped = dados.map((linha) => Map<String, dynamic>.from(linha)).toList();
+              final recebidas = dados.map((linha) => Map<String, dynamic>.from(linha)).toList();
+              RouteSnapshotResult snapshotConfirmado;
+              try {
+                snapshotConfirmado = await confirmarRotas(recebidas);
+              } catch (error) {
+                if (!controller.isClosed) controller.addError(error);
+                return;
+              }
+              if (controller.isClosed || currentMotoristaId != motoristaId) return;
+              final mapped = snapshotConfirmado.routes;
               print('⚡ REALTIME: Dados recebidos via WebSocket. Qtd: ${mapped.length}');
               
-              if (mapped.isEmpty && !_isPrimeiraBusca && _idsRotasConhecidas.isNotEmpty) {
+              if (snapshotConfirmado.completed) {
                 await AudioService.playFinal();
               }
 
